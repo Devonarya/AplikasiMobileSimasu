@@ -200,6 +200,7 @@ class _RuanganPageState extends State<RuanganPage> {
       onTap: () {
         setState(() => _selectedIndex = index);
 
+        // Navigasi ke halaman Inventaris
         if (index == 0) {
           Navigator.push(
             context,
@@ -241,6 +242,7 @@ class _RuanganPageState extends State<RuanganPage> {
     );
   }
 
+  // 🔽 Widget untuk kartu ruangan
   Widget _buildRoomCard({
     required String title,
     required String capacity,
