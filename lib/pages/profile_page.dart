@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:simasu/pages/dashboard_page.dart';
 import 'package:simasu/pages/kalender_page.dart';
+import '../main.dart'; // 
 import 'inventaris_page.dart';
 import 'ruangan_page.dart';
 
@@ -27,6 +28,10 @@ class ProfilePage extends StatefulWidget {
 class _ProfilePageState extends State<ProfilePage> {
   int _selectedIndex = 4;
 
+  String _userName = 'A';
+  String _userEmail = 'a@a';
+  String _profileImagePath = 'assets/images/profile_default.png';
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -39,14 +44,18 @@ class _ProfilePageState extends State<ProfilePage> {
             children: [
               _HeaderProfile(),
               const SizedBox(height: 16),
-              _UserCard(name: 'A', email: 'a@a'),
+              _UserCard(
+                name: _userName,
+                email: _userEmail,
+                imagePath: _profileImagePath,
+                onTap: _showEditProfileSheet,
+              ),
               const SizedBox(height: 12),
-              Text(
-                'Riwayat peminjaman Anda tercatat rapi. Pantau status pengajuan kapan pun.',
+              const Text(
+                'Pantau status pengajuan kapan pun.',
                 style: TextStyle(color: Colors.black54),
               ),
               const SizedBox(height: 20),
-
               const Text(
                 'Riwayat Peminjaman',
                 style: TextStyle(
@@ -56,37 +65,45 @@ class _ProfilePageState extends State<ProfilePage> {
                 ),
               ),
               const SizedBox(height: 12),
-
-              _LoanHistoryCard(
+              const _LoanHistoryCard(
                 category: 'PEMINJAMAN BARANG',
                 title: 'Speaker Portable JBL',
                 start: 'Mulai: Minggu, 1 Desember 2024 07.00',
                 end: 'Selesai: Minggu, 1 Desember 2024 17.00',
                 note: 'Catatan: Digunakan untuk tabligh akbar remaja.',
                 statusLabel: 'Selesai',
-                statusColor: const Color(0xFFB9E0C7),
-                statusTextColor: const Color(0xFF2F6E3E),
+                statusColor: Color(0xFFB9E0C7),
+                statusTextColor: Color(0xFF2F6E3E),
               ),
               const SizedBox(height: 12),
-              _LoanHistoryCard(
+              const _LoanHistoryCard(
                 category: 'PEMINJAMAN RUANGAN',
                 title: 'Aula Utama',
                 start: 'Mulai: Minggu, 15 Desember 2024 18.30',
                 end: 'Selesai: Minggu, 15 Desember 2024 21.00',
                 note: 'Catatan: Acara Maulid Nabi bersama warga.',
                 statusLabel: 'Disetujui',
-                statusColor: const Color(0xFFCDE7D6),
-                statusTextColor: const Color(0xFF2F6E3E),
+                statusColor: Color(0xFFCDE7D6),
+                statusTextColor: Color(0xFF2F6E3E),
               ),
               const SizedBox(height: 24),
 
-              _LogoutButton(onTap: () {}),
+              _LogoutButton(
+                onTap: () {
+                  Navigator.of(context).pushAndRemoveUntil(
+                    MaterialPageRoute(
+                      builder: (context) => const AuthPage(),
+                    ),
+                    (route) => false,
+                  );
+                },
+              ),
+
               const SizedBox(height: 100),
             ],
           ),
         ),
       ),
-
       bottomNavigationBar: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12),
         child: Container(
@@ -172,6 +189,119 @@ class _ProfilePageState extends State<ProfilePage> {
       ),
     );
   }
+
+  void _showEditProfileSheet() {
+    final nameController = TextEditingController(text: _userName);
+    final emailController = TextEditingController(text: _userEmail);
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (context) {
+        return Padding(
+          padding: EdgeInsets.only(
+            left: 16,
+            right: 16,
+            top: 16,
+            bottom: MediaQuery.of(context).viewInsets.bottom + 16,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: Container(
+                  width: 40,
+                  height: 4,
+                  margin: const EdgeInsets.only(bottom: 16),
+                  decoration: BoxDecoration(
+                    color: Colors.grey[400],
+                    borderRadius: BorderRadius.circular(999),
+                  ),
+                ),
+              ),
+              const Text(
+                'Edit Profil',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+              const SizedBox(height: 16),
+              Row(
+                children: [
+                  CircleAvatar(
+                    radius: 28,
+                    backgroundImage: AssetImage(_profileImagePath),
+                  ),
+                  const SizedBox(width: 12),
+                  TextButton.icon(
+                    onPressed: () {
+                      setState(() {
+                        _profileImagePath =
+                            _profileImagePath == 'assets/images/profile_default.png'
+                                ? 'assets/images/profile_alt.png'
+                                : 'assets/images/profile_default.png';
+                      });
+                    },
+                    icon: const Icon(Icons.photo_camera_outlined),
+                    label: const Text('Ganti foto'),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: nameController,
+                decoration: const InputDecoration(
+                  labelText: 'Nama',
+                  border: OutlineInputBorder(),
+                ),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: emailController,
+                decoration: const InputDecoration(
+                  labelText: 'Email',
+                  border: OutlineInputBorder(),
+                ),
+              ),
+              const SizedBox(height: 16),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF1E8A3E),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(24),
+                    ),
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                  ),
+                  onPressed: () {
+                    setState(() {
+                      _userName = nameController.text.trim();
+                      _userEmail = emailController.text.trim();
+                    });
+                    Navigator.pop(context);
+                  },
+                  child: const Text(
+                    'Simpan',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 8),
+            ],
+          ),
+        );
+      },
+    );
+  }
 }
 
 class _HeaderProfile extends StatelessWidget {
@@ -220,7 +350,7 @@ class _HeaderProfile extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 6),
-                Text(
+                const Text(
                   'Lihat riwayat peminjaman dan kelola akun Anda.',
                   style: TextStyle(
                     fontSize: 13,
@@ -231,7 +361,6 @@ class _HeaderProfile extends StatelessWidget {
               ],
             ),
           ),
-
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
@@ -259,55 +388,67 @@ class _HeaderProfile extends StatelessWidget {
 class _UserCard extends StatelessWidget {
   final String name;
   final String email;
-  const _UserCard({required this.name, required this.email});
+  final String imagePath;
+  final VoidCallback? onTap;
+
+  const _UserCard({
+    required this.name,
+    required this.email,
+    required this.imagePath,
+    this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(22),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.06),
-            blurRadius: 16,
-            offset: const Offset(0, 8),
-          ),
-        ],
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 54,
-            height: 54,
-            decoration: BoxDecoration(
-              color: const Color(0xFFEAF4ED),
-              borderRadius: BorderRadius.circular(16),
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(22),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.06),
+              blurRadius: 16,
+              offset: const Offset(0, 8),
             ),
-            child: const Icon(
-              Icons.verified_user_outlined,
-              color: Color(0xFF2F6E3E),
+          ],
+        ),
+        child: Row(
+          children: [
+            CircleAvatar(
+              radius: 27,
+              backgroundColor: const Color(0xFFEAF4ED),
+              backgroundImage: AssetImage(imagePath),
             ),
-          ),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  name,
-                  style: const TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w800,
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    name,
+                    style: const TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w800,
+                    ),
                   ),
-                ),
-                const SizedBox(height: 2),
-                Text(email, style: const TextStyle(color: Colors.black54)),
-              ],
+                  const SizedBox(height: 2),
+                  Text(
+                    email,
+                    style: const TextStyle(color: Colors.black54),
+                  ),
+                ],
+              ),
             ),
-          ),
-        ],
+            const Icon(
+              Icons.edit_outlined,
+              color: Colors.black45,
+              size: 20,
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -364,7 +505,6 @@ class _LoanHistoryCard extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 12),
-
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -395,7 +535,6 @@ class _LoanHistoryCard extends StatelessWidget {
               ],
             ),
           ),
-
           const SizedBox(width: 8),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
