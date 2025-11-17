@@ -1,470 +1,615 @@
 import 'package:flutter/material.dart';
-import 'pages/dashboard_page.dart';
 
-const kLogoPath = 'assets/images/simasu_mark.png';
-void main() => runApp(const SimasuApp());
+void main() {
+  runApp(const MyApp());
+}
 
-class SimasuApp extends StatelessWidget {
-  const SimasuApp({super.key});
+class MyApp extends StatelessWidget {
+  const MyApp({Key? key}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'SIMASU',
+      title: 'Inventaris',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
-        useMaterial3: false,
-        primaryColor: _Palette.primary,
-        scaffoldBackgroundColor: Colors.white,
-        fontFamily: 'Roboto',
-        inputDecorationTheme: InputDecorationTheme(
-          filled: true,
-          fillColor: Colors.white,
-          hintStyle: TextStyle(color: Colors.grey.shade500),
-          contentPadding: const EdgeInsets.symmetric(
-            horizontal: 16,
-            vertical: 16,
-          ),
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(14),
-            borderSide: BorderSide(color: Colors.grey.shade300),
-          ),
-          enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(14),
-            borderSide: BorderSide(color: Colors.grey.shade300),
-          ),
-          focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(14),
-            borderSide: const BorderSide(color: _Palette.primary, width: 1.6),
-          ),
-        ),
+        primarySwatch: Colors.green,
+        scaffoldBackgroundColor: const Color(0xFFF5F5F5),
       ),
-      home: const AuthPage(),
+      home: const InventarisPage(),
     );
   }
 }
 
-class _Palette {
-  static const primary = Color(0xFF2F6E3E);
-  static const primaryDark = Color(0xFF255733);
-  static const lightMint = Color(0xFFEFF6F1);
-  static const lightMint2 = Color(0xFFE2EFE7);
+class InventoryItem {
+  final String name;
+  final String category;
+  final IconData icon;
+  int stock;
+
+  InventoryItem({
+    required this.name,
+    required this.category,
+    required this.icon,
+    required this.stock,
+  });
 }
 
-class AuthPage extends StatefulWidget {
-  const AuthPage({super.key});
+class InventarisPage extends StatefulWidget {
+  const InventarisPage({Key? key}) : super(key: key);
+
   @override
-  State<AuthPage> createState() => _AuthPageState();
+  State<InventarisPage> createState() => _InventarisPageState();
 }
 
-class _AuthPageState extends State<AuthPage> {
-  bool isRegister = true;
+class _InventarisPageState extends State<InventarisPage> {
+  int _selectedIndex = 1;
+
+  final List<InventoryItem> _inventoryItems = [
+    InventoryItem(
+      name: 'Speaker Portable JBL',
+      category: 'Peralatan Audiovisual',
+      icon: Icons.speaker,
+      stock: 4,
+    ),
+    InventoryItem(
+      name: 'Proyektor Full HD',
+      category: 'Multimedia Sangat baik',
+      icon: Icons.videocam,
+      stock: 0,
+    ),
+    InventoryItem(
+      name: 'Karpet Tambahan',
+      category: 'Perabotan Sholat-Lantai',
+      icon: Icons.calendar_view_day,
+      stock: 15,
+    ),
+    InventoryItem(
+      name: 'Mic Wireless',
+      category: 'Peralatan Audiovisual',
+      icon: Icons.mic,
+      stock: 8,
+    ),
+  ];
+
+  String _getStockStatus(int stock) {
+    if (stock == 0) return 'Habis';
+    if (stock < 10) return 'Terbatas';
+    return 'Tersedia';
+  }
+
+  Color _getStockColor(int stock) {
+    if (stock == 0) return Colors.red;
+    if (stock < 10) return Colors.orange;
+    return const Color(0xFF4CAF50);
+  }
+
+  Color _getStockBgColor(int stock) {
+    if (stock == 0) return Colors.red.withOpacity(0.1);
+    if (stock < 10) return Colors.orange.withOpacity(0.1);
+    return const Color(0xFFE8F5E9);
+  }
+
+  void _showBookingDialog(InventoryItem item) {
+    if (item.stock == 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Maaf, barang sedang tidak tersedia'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    int quantity = 1;
+    final TextEditingController nameController = TextEditingController();
+    final TextEditingController phoneController = TextEditingController();
+
+    showDialog(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          title: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFE8F5E9),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(
+                  item.icon,
+                  color: const Color(0xFF4CAF50),
+                  size: 20,
+                ),
+              ),
+              const SizedBox(width: 12),
+              const Expanded(
+                child: Text('Booking Barang', style: TextStyle(fontSize: 18)),
+              ),
+            ],
+          ),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  item.name,
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  '${item.category} • ${item.stock} unit tersedia',
+                  style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                ),
+                const SizedBox(height: 20),
+                TextField(
+                  controller: nameController,
+                  decoration: InputDecoration(
+                    labelText: 'Nama Peminjam',
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    prefixIcon: const Icon(Icons.person_outline),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                TextField(
+                  controller: phoneController,
+                  keyboardType: TextInputType.phone,
+                  decoration: InputDecoration(
+                    labelText: 'Nomor Telepon',
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    prefixIcon: const Icon(Icons.phone_outlined),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                const Text(
+                  'Jumlah Barang',
+                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+                ),
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    IconButton(
+                      onPressed: quantity > 1
+                          ? () {
+                              setDialogState(() {
+                                quantity--;
+                              });
+                            }
+                          : null,
+                      icon: const Icon(Icons.remove_circle_outline),
+                      color: const Color(0xFF4CAF50),
+                    ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 24,
+                        vertical: 8,
+                      ),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFE8F5E9),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Text(
+                        '$quantity',
+                        style: const TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFF4CAF50),
+                        ),
+                      ),
+                    ),
+                    IconButton(
+                      onPressed: quantity < item.stock
+                          ? () {
+                              setDialogState(() {
+                                quantity++;
+                              });
+                            }
+                          : null,
+                      icon: const Icon(Icons.add_circle_outline),
+                      color: const Color(0xFF4CAF50),
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      'Maks: ${item.stock}',
+                      style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Batal'),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                if (nameController.text.isEmpty ||
+                    phoneController.text.isEmpty) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Mohon lengkapi semua data'),
+                      backgroundColor: Colors.orange,
+                    ),
+                  );
+                  return;
+                }
+
+                setState(() {
+                  item.stock -= quantity;
+                });
+
+                Navigator.pop(context);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(
+                      'Booking berhasil! $quantity ${item.name} telah dibooking',
+                    ),
+                    backgroundColor: const Color(0xFF4CAF50),
+                  ),
+                );
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF4CAF50),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+              child: const Text('Konfirmasi Booking'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
-      body: Stack(
-        children: [
-          _HeaderGradient(),
-          SafeArea(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
-              child: Column(
+      backgroundColor: const Color(0xFFF5F5F5),
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        title: const Text(
+          'Inventaris',
+          style: TextStyle(
+            color: Colors.black87,
+            fontSize: 16,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+        leading: const Icon(Icons.arrow_back, color: Colors.black87),
+      ),
+      body: SingleChildScrollView(
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(24),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(20),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.05),
+                      blurRadius: 10,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'MASJID SYAMSUL ULUM',
+                            style: TextStyle(
+                              fontSize: 11,
+                              color: Colors.grey[600],
+                              letterSpacing: 0.5,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          const Text(
+                            'Kelola Inventaris',
+                            style: TextStyle(
+                              fontSize: 22,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.black87,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            'Peminjaman barang cepat dan transparan untuk semua jamaah',
+                            style: TextStyle(
+                              fontSize: 13,
+                              color: Colors.grey[600],
+                              height: 1.4,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 24),
+
+              Row(
                 children: [
-                  const SizedBox(height: 8),
-                  const _Logo(),
-                  const SizedBox(height: 12),
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFE8F5E9),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: const Icon(
+                      Icons.inventory_2_outlined,
+                      color: Color(0xFF4CAF50),
+                      size: 18,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'INVENTARIS MASJID',
+                        style: TextStyle(
+                          fontSize: 10,
+                          color: Colors.grey[600],
+                          letterSpacing: 0.5,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      const Text(
+                        'Peminjaman Barang',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.black87,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Pilih barang yang tersedia dan ajukan peminjaman dengan mudah.',
+                style: TextStyle(fontSize: 13, color: Colors.grey[600]),
+              ),
+              const SizedBox(height: 20),
+
+              ..._inventoryItems.map(
+                (item) => Padding(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: _buildInventoryItem(item),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+      bottomNavigationBar: Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.1),
+              blurRadius: 10,
+              offset: const Offset(0, -2),
+            ),
+          ],
+          borderRadius: const BorderRadius.only(
+            topLeft: Radius.circular(24),
+            topRight: Radius.circular(24),
+          ),
+        ),
+        child: ClipRRect(
+          borderRadius: const BorderRadius.only(
+            topLeft: Radius.circular(24),
+            topRight: Radius.circular(24),
+          ),
+          child: BottomNavigationBar(
+            currentIndex: _selectedIndex,
+            onTap: (index) {
+              setState(() {
+                _selectedIndex = index;
+              });
+            },
+            type: BottomNavigationBarType.fixed,
+            backgroundColor: Colors.white,
+            selectedItemColor: Colors.white,
+            unselectedItemColor: Colors.grey[600],
+            selectedLabelStyle: const TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+            ),
+            unselectedLabelStyle: const TextStyle(fontSize: 12),
+            items: [
+              BottomNavigationBarItem(
+                icon: _buildNavIcon(Icons.home_outlined, 0),
+                label: 'Beranda',
+              ),
+              BottomNavigationBarItem(
+                icon: _buildNavIcon(Icons.inventory_2_outlined, 1),
+                label: 'Inventaris',
+              ),
+              BottomNavigationBarItem(
+                icon: _buildNavIcon(Icons.edit_note_outlined, 2),
+                label: 'Ruangan',
+              ),
+              BottomNavigationBarItem(
+                icon: _buildNavIcon(Icons.person_outline, 3),
+                label: 'Profil',
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildNavIcon(IconData icon, int index) {
+    final isSelected = _selectedIndex == index;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      decoration: BoxDecoration(
+        color: isSelected ? const Color(0xFF4CAF50) : Colors.transparent,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Icon(icon, color: isSelected ? Colors.white : Colors.grey[600]),
+    );
+  }
+
+  Widget _buildInventoryItem(InventoryItem item) {
+    final stockStatus = _getStockStatus(item.stock);
+    final stockColor = _getStockColor(item.stock);
+    final stockBgColor = _getStockBgColor(item.stock);
+    final isAvailable = item.stock > 0;
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFE8F5E9),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Icon(
+                  item.icon,
+                  color: const Color(0xFF4CAF50),
+                  size: 24,
+                ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      item.name,
+                      style: const TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.black87,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      '${item.category} • ${item.stock} unit',
+                      style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 12),
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 6,
+                ),
+                decoration: BoxDecoration(
+                  color: stockBgColor,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      item.stock == 0
+                          ? Icons.cancel_outlined
+                          : item.stock < 10
+                          ? Icons.warning_amber_rounded
+                          : Icons.check_circle_outline,
+                      color: stockColor,
+                      size: 14,
+                    ),
+                    const SizedBox(width: 4),
+                    Text(
+                      stockStatus,
+                      style: TextStyle(
+                        color: stockColor,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton(
+              onPressed: isAvailable ? () => _showBookingDialog(item) : null,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: isAvailable
+                    ? const Color(0xFF4CAF50)
+                    : Colors.grey[300],
+                disabledBackgroundColor: Colors.grey[300],
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                elevation: 0,
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    isAvailable ? Icons.calendar_today : Icons.block,
+                    size: 16,
+                    color: isAvailable ? Colors.white : Colors.grey[600],
+                  ),
+                  const SizedBox(width: 8),
                   Text(
-                    'S I M A S U',
+                    isAvailable ? 'Book Sekarang' : 'Tidak Tersedia',
                     style: TextStyle(
-                      letterSpacing: 6,
-                      color: _Palette.primary,
+                      color: isAvailable ? Colors.white : Colors.grey[600],
+                      fontSize: 13,
                       fontWeight: FontWeight.w600,
                     ),
                   ),
-                  const SizedBox(height: 12),
-                  const Text(
-                    'Kelola Inventaris &\nRuangan Masjid',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      fontSize: 26,
-                      height: 1.25,
-                      fontWeight: FontWeight.w800,
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-                  Text(
-                    'Aplikasi modern bernuansa Islami untuk memudahkan pencatatan inventaris dan peminjaman ruangan.',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(color: Colors.grey.shade700, height: 1.4),
-                  ),
-                  const SizedBox(height: 28),
-                  Center(
-                    child: ConstrainedBox(
-                      constraints: const BoxConstraints(maxWidth: 520),
-                      child: _AuthCard(
-                        isRegister: isRegister,
-                        onToggle: (val) => setState(() => isRegister = val),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-                  Text(
-                    '© 2025 Takmir Masjid Al-Barokah.',
-                    style: TextStyle(color: Colors.grey.shade500, fontSize: 12),
-                  ),
-                  const SizedBox(height: 24),
                 ],
               ),
             ),
           ),
         ],
-      ),
-    );
-  }
-}
-
-class _HeaderGradient extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return ClipRRect(
-      borderRadius: const BorderRadius.only(
-        bottomLeft: Radius.circular(48),
-        bottomRight: Radius.circular(48),
-      ),
-      child: Container(
-        height: 260,
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [Color(0xFFF6FAF7), _Palette.lightMint],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _Logo extends StatelessWidget {
-  const _Logo();
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: 68,
-      height: 68,
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(18),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.06),
-            offset: const Offset(0, 8),
-            blurRadius: 20,
-          ),
-        ],
-      ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(18),
-        child: Padding(
-          padding: const EdgeInsets.all(10),
-          child: Image.asset(
-            kLogoPath,
-            fit: BoxFit.contain,
-            filterQuality: FilterQuality.high,
-            semanticLabel: 'Logo SIMASU',
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _AuthCard extends StatefulWidget {
-  final bool isRegister;
-  final ValueChanged<bool> onToggle;
-
-  const _AuthCard({required this.isRegister, required this.onToggle});
-
-  @override
-  State<_AuthCard> createState() => _AuthCardState();
-}
-
-class _AuthCardState extends State<_AuthCard> {
-  final _email = TextEditingController();
-  final _pass = TextEditingController();
-  final _confirm = TextEditingController();
-
-  final _emailFocus = FocusNode();
-  final _passFocus = FocusNode();
-
-  static const _kStaticEmail = 'admin@gmail.com';
-  static const _kStaticPass = 'admin123';
-
-  @override
-  void dispose() {
-    _email.dispose();
-    _pass.dispose();
-    _confirm.dispose();
-    _emailFocus.dispose();
-    _passFocus.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final isRegister = widget.isRegister;
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(22),
-        boxShadow: [
-          BoxShadow(
-            color: _Palette.primary.withOpacity(0.09),
-            blurRadius: 40,
-            offset: const Offset(0, 16),
-          ),
-        ],
-        border: Border.all(color: Colors.grey.shade200),
-      ),
-      padding: const EdgeInsets.fromLTRB(22, 22, 22, 18),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          _SegmentedTabs(
-            activeRight: isRegister,
-            leftText: 'Masuk',
-            rightText: 'Daftar',
-            onTapLeft: () => widget.onToggle(false),
-            onTapRight: () => widget.onToggle(true),
-          ),
-          const SizedBox(height: 18),
-          Text('Email', style: _labelStyle),
-          const SizedBox(height: 8),
-          TextField(
-            controller: _email,
-            focusNode: _emailFocus,
-            keyboardType: TextInputType.emailAddress,
-            decoration: const InputDecoration(
-              hintText: 'nama@domain.com',
-              prefixIcon: Icon(Icons.email_outlined),
-            ),
-          ),
-          const SizedBox(height: 16),
-          Text('Kata Sandi', style: _labelStyle),
-          const SizedBox(height: 8),
-          TextField(
-            controller: _pass,
-            focusNode: _passFocus,
-            obscureText: true,
-            decoration: const InputDecoration(
-              hintText: 'Minimal 6 karakter',
-              prefixIcon: Icon(Icons.lock_outline),
-            ),
-          ),
-          if (isRegister) ...[
-            const SizedBox(height: 16),
-            Text('Konfirmasi Kata Sandi', style: _labelStyle),
-            const SizedBox(height: 8),
-            TextField(
-              controller: _confirm,
-              obscureText: true,
-              decoration: const InputDecoration(
-                hintText: 'Ulangi kata sandi',
-                prefixIcon: Icon(Icons.lock_reset_outlined),
-              ),
-            ),
-          ],
-          const SizedBox(height: 20),
-          SizedBox(
-            height: 48,
-            child: ElevatedButton(
-              onPressed: () => isRegister ? _onRegister() : _onLogin(),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: _Palette.primary,
-                foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(26),
-                ),
-                elevation: 4,
-                shadowColor: _Palette.primaryDark.withOpacity(0.4),
-              ),
-              child: Text(
-                isRegister ? 'Daftar' : 'Masuk',
-                style: const TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-            ),
-          ),
-          const SizedBox(height: 14),
-          Center(
-            child: Wrap(
-              spacing: 4,
-              children: [
-                Text(
-                  isRegister ? 'Sudah memiliki akun?' : 'Belum punya akun?',
-                  style: TextStyle(color: Colors.grey.shade700),
-                ),
-                InkWell(
-                  onTap: () => widget.onToggle(!isRegister),
-                  child: Text(
-                    isRegister ? 'Masuk di sini' : 'Daftar di sini',
-                    style: const TextStyle(
-                      color: _Palette.primary,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 10),
-          Text(
-            'Dengan masuk, Anda menyetujui tata tertib dan peraturan pengelolaan fasilitas masjid.',
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              color: Colors.grey.shade600,
-              fontSize: 12,
-              height: 1.3,
-            ),
-          ),
-          const SizedBox(height: 4),
-        ],
-      ),
-    );
-  }
-
-  void _onLogin() {
-    final email = _email.text.trim();
-    final pass = _pass.text;
-
-    if (email == _kStaticEmail && pass == _kStaticPass) {
-      Navigator.of(
-        context,
-      ).pushReplacement(MaterialPageRoute(builder: (_) => const MasjidApp()));
-    } else {
-      _pass.clear();
-      _emailFocus.requestFocus();
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Email atau kata sandi salah.'),
-          behavior: SnackBarBehavior.floating,
-          duration: Duration(seconds: 2),
-        ),
-      );
-    }
-  }
-
-  void _onRegister() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Masih belum nyimpen data apa apa.'),
-        behavior: SnackBarBehavior.floating,
-        duration: Duration(seconds: 2),
-      ),
-    );
-  }
-
-  TextStyle get _labelStyle =>
-      TextStyle(fontWeight: FontWeight.w700, color: Colors.grey.shade800);
-}
-
-class _SegmentedTabs extends StatelessWidget {
-  final bool activeRight;
-  final String leftText;
-  final String rightText;
-  final VoidCallback onTapLeft;
-  final VoidCallback onTapRight;
-
-  const _SegmentedTabs({
-    required this.activeRight,
-    required this.leftText,
-    required this.rightText,
-    required this.onTapLeft,
-    required this.onTapRight,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      height: 42,
-      decoration: BoxDecoration(
-        color: _Palette.lightMint2,
-        borderRadius: BorderRadius.circular(24),
-      ),
-      padding: const EdgeInsets.all(4),
-      child: Row(
-        children: [
-          Expanded(
-            child: _TabPill(
-              text: leftText,
-              active: !activeRight,
-              onTap: onTapLeft,
-            ),
-          ),
-          Expanded(
-            child: _TabPill(
-              text: rightText,
-              active: activeRight,
-              onTap: onTapRight,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _TabPill extends StatelessWidget {
-  final String text;
-  final bool active;
-  final VoidCallback onTap;
-
-  const _TabPill({
-    required this.text,
-    required this.active,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final child = Center(
-      child: Text(
-        text,
-        style: TextStyle(
-          fontWeight: FontWeight.w700,
-          color: active ? Colors.white : _Palette.primary,
-        ),
-      ),
-    );
-
-    return AnimatedContainer(
-      duration: const Duration(milliseconds: 180),
-      decoration: BoxDecoration(
-        color: active ? _Palette.primary : Colors.transparent,
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: active
-            ? [
-                BoxShadow(
-                  color: _Palette.primary.withOpacity(0.4),
-                  blurRadius: 12,
-                  offset: const Offset(0, 4),
-                ),
-              ]
-            : null,
-      ),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          borderRadius: BorderRadius.circular(20),
-          onTap: onTap,
-          child: child,
-        ),
       ),
     );
   }
