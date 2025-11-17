@@ -28,25 +28,16 @@ class _KalenderPageState extends State<KalenderPage> {
   int selectedDay = 0;
   int currentNavIndex = 3;
 
-  // Data reservasi (tanggal: [jenis]) - hijau tua untuk ruangan, hijau muda untuk barang
-  Map<int, List<String>> reservations = {
-    9: ['ruangan'],
-    10: ['barang'],
-    15: ['ruangan', 'barang'],
-    16: ['ruangan'],
-    17: ['barang'],
-    23: ['ruangan'],
+  Map<String, List<String>> reservations = {
+    '2025-01-10': ['barang'],
+    '2025-01-16': ['ruangan'],
+    '2025-01-23': ['ruangan'],
   };
 
-  // Data peminjaman
   List<Map<String, String>> peminjaman = [
-    {'nama': 'Spanduk Peringkat Jitu', 'tanggal': '09'},
-    {'nama': 'Proyektor Full HD', 'tanggal': '10'},
-    {'nama': 'Spanduk Peringkat Jitu', 'tanggal': '15'},
-    {'nama': 'Ruang Serbaguna', 'tanggal': '16'},
-    {'nama': 'Ayub Haruna', 'tanggal': '17'},
-    {'nama': 'Perpustakaan', 'tanggal': '23'},
-    {'nama': 'Ayub Haruna', 'tanggal': '23'},
+    {'nama': 'Proyektor Full HD', 'tanggal': '10', 'tanggalLengkap': '2025-01-10'},
+    {'nama': 'Ruang Serbaguna', 'tanggal': '16', 'tanggalLengkap': '2025-01-16'},
+    {'nama': 'Perpustakaan', 'tanggal': '23', 'tanggalLengkap': '2025-01-23'},
   ];
 
   void previousMonth() {
@@ -69,41 +60,287 @@ class _KalenderPageState extends State<KalenderPage> {
     return DateTime(date.year, date.month, 1).weekday % 7;
   }
 
+  String _getDateKey(int day) {
+    return '${selectedMonth.year}-${selectedMonth.month.toString().padLeft(2, '0')}-${day.toString().padLeft(2, '0')}';
+  }
+
+  List<Map<String, String>> _getFilteredPeminjaman() {
+    String yearMonth = '${selectedMonth.year}-${selectedMonth.month.toString().padLeft(2, '0')}';
+    return peminjaman.where((item) {
+      return item['tanggalLengkap']!.startsWith(yearMonth);
+    }).toList();
+  }
+
   void onDayTapped(int day) {
     setState(() {
       selectedDay = day;
     });
+    _showReservationForm(day);
+  }
+
+  void _showReservationForm(int day) {
+    String selectedType = 'Sewa Ruangan';
+    TextEditingController namaController = TextEditingController();
+    TextEditingController peminjamController = TextEditingController();
+    DateTime tanggalMulai = DateTime(selectedMonth.year, selectedMonth.month, day);
+    DateTime tanggalSelesai = DateTime(selectedMonth.year, selectedMonth.month, day);
+
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Text(
-          'Reservasi $day ${_getMonthName(selectedMonth.month)} ${selectedMonth.year}',
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ListTile(
-              leading: const Icon(Icons.meeting_room, color: Colors.green),
-              title: const Text('Sewa Ruangan'),
-              onTap: () {
-                Navigator.pop(context);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Form sewa ruangan dibuka')),
-                );
-              },
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) => Dialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          child: SingleChildScrollView(
+            child: Padding(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Tambah Peminjaman/Sewa',
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+
+                  const Text(
+                    'Tipe',
+                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+                  ),
+                  const SizedBox(height: 8),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                    decoration: BoxDecoration(
+                      border: Border.all(color: Colors.grey.shade300),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: DropdownButtonHideUnderline(
+                      child: DropdownButton<String>(
+                        isExpanded: true,
+                        value: selectedType,
+                        items: ['Sewa Ruangan', 'Pinjam Barang']
+                            .map((type) => DropdownMenuItem(
+                                  value: type,
+                                  child: Text(type),
+                                ))
+                            .toList(),
+                        onChanged: (value) {
+                          setDialogState(() {
+                            selectedType = value!;
+                          });
+                        },
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+
+                  const Text(
+                    'Nama Item/Ruangan',
+                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+                  ),
+                  const SizedBox(height: 8),
+                  TextField(
+                    controller: namaController,
+                    decoration: InputDecoration(
+                      hintText: 'Contoh: 20 Kursi Putih',
+                      hintStyle: TextStyle(color: Colors.grey.shade400),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                        borderSide: BorderSide(color: Colors.grey.shade300),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                        borderSide: BorderSide(color: Colors.grey.shade300),
+                      ),
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 12,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+
+                  const Text(
+                    'Peminjam/Penyewa',
+                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+                  ),
+                  const SizedBox(height: 8),
+                  TextField(
+                    controller: peminjamController,
+                    decoration: InputDecoration(
+                      hintText: 'Contoh: Acara Walimah',
+                      hintStyle: TextStyle(color: Colors.grey.shade400),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                        borderSide: BorderSide(color: Colors.grey.shade300),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                        borderSide: BorderSide(color: Colors.grey.shade300),
+                      ),
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 12,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+
+                  const Text(
+                    'Tanggal Mulai',
+                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+                  ),
+                  const SizedBox(height: 8),
+                  InkWell(
+                    onTap: () async {
+                      DateTime? picked = await showDatePicker(
+                        context: context,
+                        initialDate: tanggalMulai,
+                        firstDate: DateTime(2020),
+                        lastDate: DateTime(2030),
+                      );
+                      if (picked != null) {
+                        setDialogState(() {
+                          tanggalMulai = picked;
+                        });
+                      }
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 12,
+                      ),
+                      decoration: BoxDecoration(
+                        border: Border.all(color: Colors.grey.shade300),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            '${tanggalMulai.day.toString().padLeft(2, '0')}/${tanggalMulai.month.toString().padLeft(2, '0')}/${tanggalMulai.year}',
+                            style: const TextStyle(fontSize: 14),
+                          ),
+                          const Icon(Icons.calendar_today, size: 18),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+
+                  const Text(
+                    'Tanggal Selesai',
+                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+                  ),
+                  const SizedBox(height: 8),
+                  InkWell(
+                    onTap: () async {
+                      DateTime? picked = await showDatePicker(
+                        context: context,
+                        initialDate: tanggalSelesai,
+                        firstDate: DateTime(2020),
+                        lastDate: DateTime(2030),
+                      );
+                      if (picked != null) {
+                        setDialogState(() {
+                          tanggalSelesai = picked;
+                        });
+                      }
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 12,
+                      ),
+                      decoration: BoxDecoration(
+                        border: Border.all(color: Colors.grey.shade300),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            '${tanggalSelesai.day.toString().padLeft(2, '0')}/${tanggalSelesai.month.toString().padLeft(2, '0')}/${tanggalSelesai.year}',
+                            style: const TextStyle(fontSize: 14),
+                          ),
+                          const Icon(Icons.calendar_today, size: 18),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      TextButton(
+                        onPressed: () => Navigator.pop(context),
+                        style: TextButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 24,
+                            vertical: 12,
+                          ),
+                        ),
+                        child: const Text(
+                          'Batal',
+                          style: TextStyle(color: Colors.grey),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      ElevatedButton(
+                        onPressed: () {
+                          if (namaController.text.isNotEmpty) {
+                            setState(() {
+                              String dateKey = '${tanggalMulai.year}-${tanggalMulai.month.toString().padLeft(2, '0')}-${tanggalMulai.day.toString().padLeft(2, '0')}';
+                              String type = selectedType == 'Sewa Ruangan' ? 'ruangan' : 'barang';
+                              
+                              if (reservations.containsKey(dateKey)) {
+                                if (!reservations[dateKey]!.contains(type)) {
+                                  reservations[dateKey]!.add(type);
+                                }
+                              } else {
+                                reservations[dateKey] = [type];
+                              }
+                              
+                              peminjaman.add({
+                                'nama': namaController.text,
+                                'tanggal': tanggalMulai.day.toString(),
+                                'tanggalLengkap': dateKey,
+                              });
+                            });
+                            Navigator.pop(context);
+                            //Snackbar Notification
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('Reservasi berhasil ditambahkan'),
+                              ),
+                            );
+                          }
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF4CAF50),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 24,
+                            vertical: 12,
+                          ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                        ),
+                        child: const Text(
+                          'Simpan',
+                          style: TextStyle(color: Colors.white),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
             ),
-            ListTile(
-              leading: const Icon(Icons.inventory_2, color: Colors.green),
-              title: const Text('Pinjam Barang'),
-              onTap: () {
-                Navigator.pop(context);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Form pinjam barang dibuka')),
-                );
-              },
-            ),
-          ],
+          ),
         ),
       ),
     );
@@ -133,20 +370,18 @@ class _KalenderPageState extends State<KalenderPage> {
       backgroundColor: const Color(0xFFF5F5F5),
       body: Column(
         children: [
-          // Header dengan scroll
           Expanded(
             child: SingleChildScrollView(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Header
                   Container(
                     padding: const EdgeInsets.fromLTRB(20, 50, 20, 20),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         const Text(
-                          'MASJID AL-KAUTSAR',
+                          'MASJID Symasul Ulum',
                           style: TextStyle(
                             fontSize: 11,
                             color: Colors.grey,
@@ -204,7 +439,6 @@ class _KalenderPageState extends State<KalenderPage> {
                     ),
                   ),
 
-                  // Kalender
                   Container(
                     margin: const EdgeInsets.symmetric(horizontal: 20),
                     padding: const EdgeInsets.all(18),
@@ -221,7 +455,6 @@ class _KalenderPageState extends State<KalenderPage> {
                     ),
                     child: Column(
                       children: [
-                        // Month selector
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
@@ -249,7 +482,6 @@ class _KalenderPageState extends State<KalenderPage> {
                         ),
                         const SizedBox(height: 16),
 
-                        // Days header
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceAround,
                           children:
@@ -273,7 +505,6 @@ class _KalenderPageState extends State<KalenderPage> {
                         ),
                         const SizedBox(height: 10),
 
-                        // Calendar grid
                         ...List.generate(6, (weekIndex) {
                           return Padding(
                             padding: const EdgeInsets.symmetric(vertical: 3),
@@ -290,17 +521,14 @@ class _KalenderPageState extends State<KalenderPage> {
                                   return const SizedBox(width: 36, height: 36);
                                 }
 
-                                bool hasReservation = reservations.containsKey(
-                                  dayNumber,
-                                );
-                                List<String>? types = reservations[dayNumber];
-                                bool hasRuangan =
-                                    types?.contains('ruangan') ?? false;
-                                bool hasBarang =
-                                    types?.contains('barang') ?? false;
+                                String dateKey = _getDateKey(dayNumber);
+                                bool hasReservation = reservations.containsKey(dateKey);
+                                List<String>? types = reservations[dateKey];
+                                bool hasRuangan = types?.contains('ruangan') ?? false;
+                                bool hasBarang = types?.contains('barang') ?? false;
 
                                 return InkWell(
-                                  onTap: () => onDayTapped(dayNumber),
+                                  onTap: () => onDayTapped(dayNumber), //Event Listener
                                   child: Container(
                                     width: 36,
                                     height: 36,
@@ -356,12 +584,10 @@ class _KalenderPageState extends State<KalenderPage> {
                   ),
                   const SizedBox(height: 20),
 
-                  // Keterangan
                   _keterangan(),
 
                   const SizedBox(height: 20),
 
-                  // Daftar Reservasi
                   _daftarReservasi(),
 
                   const SizedBox(height: 100),
@@ -372,12 +598,10 @@ class _KalenderPageState extends State<KalenderPage> {
         ],
       ),
 
-      // Bottom Navigation Bar
       bottomNavigationBar: _bottomNavBar(),
     );
   }
 
-  // ======== Widget Helper ========
   Widget _circleIcon(IconData icon) {
     return Container(
       padding: const EdgeInsets.all(6),
@@ -439,6 +663,8 @@ class _KalenderPageState extends State<KalenderPage> {
   }
 
   Widget _daftarReservasi() {
+    List<Map<String, String>> filteredPeminjaman = _getFilteredPeminjaman();
+    
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
       child: Column(
@@ -449,52 +675,63 @@ class _KalenderPageState extends State<KalenderPage> {
             style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
           ),
           const SizedBox(height: 12),
-          ...peminjaman.map((item) {
-            return Container(
-              margin: const EdgeInsets.only(bottom: 10),
-              padding: const EdgeInsets.all(14),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(12),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.03),
-                    blurRadius: 8,
-                    offset: const Offset(0, 2),
-                  ),
-                ],
+          if (filteredPeminjaman.isEmpty)
+            Container(
+              padding: const EdgeInsets.all(20),
+              child: const Center(
+                child: Text(
+                  'Belum ada reservasi di bulan ini',
+                  style: TextStyle(color: Colors.grey, fontSize: 13),
+                ),
               ),
-              child: Row(
-                children: [
-                  Container(
-                    width: 42,
-                    height: 42,
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFF5F5F5),
-                      borderRadius: BorderRadius.circular(10),
+            )
+          else
+            ...filteredPeminjaman.map((item) {
+              return Container(
+                margin: const EdgeInsets.only(bottom: 10),
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(12),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.03),
+                      blurRadius: 8,
+                      offset: const Offset(0, 2),
                     ),
-                    child: Center(
-                      child: Text(
-                        item['tanggal']!,
-                        style: const TextStyle(
-                          fontWeight: FontWeight.w600,
-                          fontSize: 15,
+                  ],
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 42,
+                      height: 42,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF5F5F5),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Center(
+                        child: Text(
+                          item['tanggal']!,
+                          style: const TextStyle(
+                            fontWeight: FontWeight.w600,
+                            fontSize: 15,
+                          ),
                         ),
                       ),
                     ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Text(
-                      item['nama']!,
-                      style: const TextStyle(fontSize: 13),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        item['nama']!,
+                        style: const TextStyle(fontSize: 13),
+                      ),
                     ),
-                  ),
-                  const Icon(Icons.chevron_right, color: Colors.grey, size: 20),
-                ],
-              ),
-            );
-          }).toList(),
+                    const Icon(Icons.chevron_right, color: Colors.grey, size: 20),
+                  ],
+                ),
+              );
+            }).toList(),
         ],
       ),
     );
