@@ -312,6 +312,7 @@ class _KalenderPageState extends State<KalenderPage> {
                               });
                             });
                             Navigator.pop(context);
+                            //Snackbar Notification
                             ScaffoldMessenger.of(context).showSnackBar(
                               const SnackBar(
                                 content: Text('Reservasi berhasil ditambahkan'),
