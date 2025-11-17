@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:simasu/pages/dashboard_page.dart';
+import 'package:simasu/pages/dashboard_page.dart' as dashboard;
 import 'package:simasu/pages/kalender_page.dart';
 import 'package:simasu/pages/profile_page.dart';
 
@@ -202,8 +202,6 @@ class _RuanganPageState extends State<RuanganPage> {
     return GestureDetector(
       onTap: () {
         setState(() => _selectedIndex = index);
-
-        // Navigasi ke halaman Inventaris
         if (index == 1) {
           Navigator.push(
             context,
@@ -212,7 +210,9 @@ class _RuanganPageState extends State<RuanganPage> {
         } else if (index == 0) {
           Navigator.push(
             context,
-            MaterialPageRoute(builder: (context) => const HomePage()),
+            MaterialPageRoute(
+              builder: (context) => const dashboard.MasjidApp(),
+            ),
           );
         } else if (index == 3) {
           Navigator.push(
