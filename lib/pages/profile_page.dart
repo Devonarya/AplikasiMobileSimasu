@@ -28,8 +28,8 @@ class ProfilePage extends StatefulWidget {
 class _ProfilePageState extends State<ProfilePage> {
   int _selectedIndex = 4;
 
-  String _userName = 'A';
-  String _userEmail = 'a@a';
+  String _userName = 'Sheila';
+  String _userEmail = 'sheilaa@gmail.com';
   String _profileImagePath = 'assets/images/profile_default.png';
 
   @override
