@@ -1,39 +1,8 @@
 import 'package:flutter/material.dart';
-
-void main() {
-  runApp(const MyApp());
-}
-
-class MyApp extends StatelessWidget {
-  const MyApp({Key? key}) : super(key: key);
-
-  @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Inventaris',
-      debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        primarySwatch: Colors.green,
-        scaffoldBackgroundColor: const Color(0xFFF5F5F5),
-      ),
-      home: const InventarisPage(),
-    );
-  }
-}
-
-class InventoryItem {
-  final String name;
-  final String category;
-  final IconData icon;
-  int stock;
-
-  InventoryItem({
-    required this.name,
-    required this.category,
-    required this.icon,
-    required this.stock,
-  });
-}
+import 'package:simasu/pages/dashboard_page.dart';
+import 'package:simasu/pages/kalender_page.dart';
+import 'package:simasu/pages/profile_page.dart';
+import 'package:simasu/pages/ruangan_page.dart';
 
 class InventarisPage extends StatefulWidget {
   const InventarisPage({Key? key}) : super(key: key);
@@ -45,31 +14,32 @@ class InventarisPage extends StatefulWidget {
 class _InventarisPageState extends State<InventarisPage> {
   int _selectedIndex = 1;
 
-  final List<InventoryItem> _inventoryItems = [
-    InventoryItem(
-      name: 'Speaker Portable JBL',
-      category: 'Peralatan Audiovisual',
-      icon: Icons.speaker,
-      stock: 4,
-    ),
-    InventoryItem(
-      name: 'Proyektor Full HD',
-      category: 'Multimedia Sangat baik',
-      icon: Icons.videocam,
-      stock: 0,
-    ),
-    InventoryItem(
-      name: 'Karpet Tambahan',
-      category: 'Perabotan Sholat-Lantai',
-      icon: Icons.calendar_view_day,
-      stock: 15,
-    ),
-    InventoryItem(
-      name: 'Mic Wireless',
-      category: 'Peralatan Audiovisual',
-      icon: Icons.mic,
-      stock: 8,
-    ),
+  // Data inventaris dengan stok
+  final List<Map<String, dynamic>> _inventoryItems = [
+    {
+      'title': 'Speaker Portable JBL',
+      'subtitle': 'Peralatan Audiovisual',
+      'icon': Icons.speaker,
+      'stock': 4,
+    },
+    {
+      'title': 'Proyektor Full HD',
+      'subtitle': 'Multimedia Sangat baik',
+      'icon': Icons.videocam,
+      'stock': 0,
+    },
+    {
+      'title': 'Karpet Tambahan',
+      'subtitle': 'Perabotan Sholat-Lantai',
+      'icon': Icons.calendar_view_day,
+      'stock': 15,
+    },
+    {
+      'title': 'Microphone Wireless',
+      'subtitle': 'Peralatan Audio',
+      'icon': Icons.mic,
+      'stock': 8,
+    },
   ];
 
   String _getStockStatus(int stock) {
@@ -84,195 +54,274 @@ class _InventarisPageState extends State<InventarisPage> {
     return const Color(0xFF4CAF50);
   }
 
-  Color _getStockBgColor(int stock) {
-    if (stock == 0) return Colors.red.withOpacity(0.1);
-    if (stock < 10) return Colors.orange.withOpacity(0.1);
-    return const Color(0xFFE8F5E9);
-  }
-
-  void _showBookingDialog(InventoryItem item) {
-    if (item.stock == 0) {
+  void _handleBooking(String itemName, int stock) {
+    if (stock == 0) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Maaf, barang sedang tidak tersedia'),
+        SnackBar(
+          content: Text('Maaf, $itemName sedang tidak tersedia'),
           backgroundColor: Colors.red,
         ),
       );
       return;
     }
 
+    TextEditingController nameController = TextEditingController();
+    TextEditingController phoneController = TextEditingController();
     int quantity = 1;
-    final TextEditingController nameController = TextEditingController();
-    final TextEditingController phoneController = TextEditingController();
+
+    DateTime? bookingDate;
+    DateTime? returnDate;
 
     showDialog(
       context: context,
-      builder: (context) => StatefulBuilder(
-        builder: (context, setDialogState) => AlertDialog(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-          ),
-          title: Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFE8F5E9),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Icon(
-                  item.icon,
-                  color: const Color(0xFF4CAF50),
-                  size: 20,
-                ),
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return AlertDialog(
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
               ),
-              const SizedBox(width: 12),
-              const Expanded(
-                child: Text('Booking Barang', style: TextStyle(fontSize: 18)),
+              title: Text(
+                "Booking $itemName",
+                style: const TextStyle(fontWeight: FontWeight.bold),
               ),
-            ],
-          ),
-          content: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  item.name,
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  '${item.category} • ${item.stock} unit tersedia',
-                  style: TextStyle(fontSize: 12, color: Colors.grey[600]),
-                ),
-                const SizedBox(height: 20),
-                TextField(
-                  controller: nameController,
-                  decoration: InputDecoration(
-                    labelText: 'Nama Peminjam',
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    prefixIcon: const Icon(Icons.person_outline),
-                  ),
-                ),
-                const SizedBox(height: 16),
-                TextField(
-                  controller: phoneController,
-                  keyboardType: TextInputType.phone,
-                  decoration: InputDecoration(
-                    labelText: 'Nomor Telepon',
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    prefixIcon: const Icon(Icons.phone_outlined),
-                  ),
-                ),
-                const SizedBox(height: 16),
-                const Text(
-                  'Jumlah Barang',
-                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
-                ),
-                const SizedBox(height: 8),
-                Row(
+              content: SingleChildScrollView(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    IconButton(
-                      onPressed: quantity > 1
-                          ? () {
-                              setDialogState(() {
-                                quantity--;
-                              });
-                            }
-                          : null,
-                      icon: const Icon(Icons.remove_circle_outline),
-                      color: const Color(0xFF4CAF50),
-                    ),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 24,
-                        vertical: 8,
-                      ),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFE8F5E9),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Text(
-                        '$quantity',
-                        style: const TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                          color: Color(0xFF4CAF50),
+                    const Text("Nama Peminjam", style: TextStyle(fontSize: 13)),
+                    const SizedBox(height: 6),
+                    TextField(
+                      controller: nameController,
+                      decoration: InputDecoration(
+                        hintText: "Masukkan nama",
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
                         ),
                       ),
                     ),
-                    IconButton(
-                      onPressed: quantity < item.stock
-                          ? () {
-                              setDialogState(() {
-                                quantity++;
-                              });
-                            }
-                          : null,
-                      icon: const Icon(Icons.add_circle_outline),
-                      color: const Color(0xFF4CAF50),
+                    const SizedBox(height: 14),
+
+                    const Text("Nomor Telepon", style: TextStyle(fontSize: 13)),
+                    const SizedBox(height: 6),
+                    TextField(
+                      controller: phoneController,
+                      keyboardType: TextInputType.phone,
+                      decoration: InputDecoration(
+                        hintText: "Masukkan nomor telepon",
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
                     ),
-                    const SizedBox(width: 8),
-                    Text(
-                      'Maks: ${item.stock}',
-                      style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                    const SizedBox(height: 14),
+
+                    const Text("Jumlah Barang", style: TextStyle(fontSize: 13)),
+                    const SizedBox(height: 6),
+                    Row(
+                      children: [
+                        IconButton(
+                          onPressed: () {
+                            if (quantity > 1) setState(() => quantity--);
+                          },
+                          icon: const Icon(
+                            Icons.remove_circle,
+                            color: Colors.red,
+                            size: 28,
+                          ),
+                        ),
+
+                        Text(
+                          quantity.toString(),
+                          style: const TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+
+                        IconButton(
+                          onPressed: () {
+                            if (quantity < stock) setState(() => quantity++);
+                          },
+                          icon: const Icon(
+                            Icons.add_circle,
+                            color: Colors.green,
+                            size: 28,
+                          ),
+                        ),
+
+                        const SizedBox(width: 8),
+                        Text(
+                          "/ $stock unit tersedia",
+                          style: TextStyle(
+                            color: Colors.grey[600],
+                            fontSize: 12,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 20),
+
+                    const Text(
+                      "Tanggal Booking",
+                      style: TextStyle(fontSize: 13),
+                    ),
+                    const SizedBox(height: 6),
+
+                    GestureDetector(
+                      onTap: () async {
+                        DateTime? pick = await showDatePicker(
+                          context: context,
+                          firstDate: DateTime.now(),
+                          lastDate: DateTime(2030),
+                          initialDate: bookingDate ?? DateTime.now(),
+                        );
+
+                        if (pick != null) {
+                          setState(() => bookingDate = pick);
+                          if (returnDate != null &&
+                              returnDate!.isBefore(pick)) {
+                            setState(() => returnDate = null);
+                          }
+                        }
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 14,
+                          vertical: 12,
+                        ),
+                        decoration: BoxDecoration(
+                          border: Border.all(color: Colors.grey.shade400),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              bookingDate == null
+                                  ? "Pilih tanggal booking"
+                                  : "${bookingDate!.day}-${bookingDate!.month}-${bookingDate!.year}",
+                              style: TextStyle(
+                                fontSize: 13,
+                                color: bookingDate == null
+                                    ? Colors.grey
+                                    : Colors.black,
+                              ),
+                            ),
+                            const Icon(Icons.calendar_today, size: 18),
+                          ],
+                        ),
+                      ),
+                    ),
+
+                    const SizedBox(height: 20),
+
+                    // TANGGAL KEMBALI
+                    const Text(
+                      "Tanggal Kembali",
+                      style: TextStyle(fontSize: 13),
+                    ),
+                    const SizedBox(height: 6),
+
+                    GestureDetector(
+                      onTap: () async {
+                        if (bookingDate == null) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text(
+                                'Harap pilih tanggal booking terlebih dahulu',
+                              ),
+                              backgroundColor: Colors.orange,
+                            ),
+                          );
+                          return;
+                        }
+
+                        DateTime? pick = await showDatePicker(
+                          context: context,
+                          firstDate: bookingDate!,
+                          lastDate: DateTime(2030),
+                          initialDate: bookingDate!,
+                        );
+
+                        if (pick != null) {
+                          setState(() => returnDate = pick);
+                        }
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 14,
+                          vertical: 12,
+                        ),
+                        decoration: BoxDecoration(
+                          border: Border.all(color: Colors.grey.shade400),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              returnDate == null
+                                  ? "Pilih tanggal kembali"
+                                  : "${returnDate!.day}-${returnDate!.month}-${returnDate!.year}",
+                              style: TextStyle(
+                                fontSize: 13,
+                                color: returnDate == null
+                                    ? Colors.grey
+                                    : Colors.black,
+                              ),
+                            ),
+                            const Icon(Icons.calendar_today, size: 18),
+                          ],
+                        ),
+                      ),
                     ),
                   ],
                 ),
-              ],
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Batal'),
-            ),
-            ElevatedButton(
-              onPressed: () {
-                if (nameController.text.isEmpty ||
-                    phoneController.text.isEmpty) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Mohon lengkapi semua data'),
-                      backgroundColor: Colors.orange,
-                    ),
-                  );
-                  return;
-                }
-
-                setState(() {
-                  item.stock -= quantity;
-                });
-
-                Navigator.pop(context);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text(
-                      'Booking berhasil! $quantity ${item.name} telah dibooking',
-                    ),
-                    backgroundColor: const Color(0xFF4CAF50),
-                  ),
-                );
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF4CAF50),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
-                ),
               ),
-              child: const Text('Konfirmasi Booking'),
-            ),
-          ],
-        ),
-      ),
+
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text("Batal"),
+                ),
+                ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF4CAF50),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                  ),
+                  onPressed: () {
+                    if (nameController.text.isEmpty ||
+                        phoneController.text.isEmpty ||
+                        bookingDate == null ||
+                        returnDate == null) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text("Harap isi semua data"),
+                          backgroundColor: Colors.orange,
+                        ),
+                      );
+                      return;
+                    }
+
+                    Navigator.pop(context);
+
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text("Berhasil booking $itemName x$quantity!"),
+                        backgroundColor: const Color(0xFF4CAF50),
+                      ),
+                    );
+                  },
+                  child: const Text("Booking"),
+                ),
+              ],
+            );
+          },
+        );
+      },
     );
   }
 
@@ -283,6 +332,7 @@ class _InventarisPageState extends State<InventarisPage> {
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
+        automaticallyImplyLeading: false,
         title: const Text(
           'Inventaris',
           style: TextStyle(
@@ -291,7 +341,6 @@ class _InventarisPageState extends State<InventarisPage> {
             fontWeight: FontWeight.w500,
           ),
         ),
-        leading: const Icon(Icons.arrow_back, color: Colors.black87),
       ),
       body: SingleChildScrollView(
         child: Padding(
@@ -347,6 +396,19 @@ class _InventarisPageState extends State<InventarisPage> {
                         ],
                       ),
                     ),
+                    const SizedBox(width: 16),
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFE8F5E9),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: const Icon(
+                        Icons.inventory_2,
+                        color: Color(0xFF4CAF50),
+                        size: 24,
+                      ),
+                    ),
                   ],
                 ),
               ),
@@ -398,69 +460,46 @@ class _InventarisPageState extends State<InventarisPage> {
               ),
               const SizedBox(height: 20),
 
-              ..._inventoryItems.map(
-                (item) => Padding(
+              // List inventaris
+              ...List.generate(_inventoryItems.length, (index) {
+                final item = _inventoryItems[index];
+                return Padding(
                   padding: const EdgeInsets.only(bottom: 12),
-                  child: _buildInventoryItem(item),
-                ),
-              ),
+                  child: _buildInventoryItem(
+                    item['title'],
+                    item['subtitle'],
+                    item['icon'],
+                    item['stock'],
+                  ),
+                );
+              }),
             ],
           ),
         ),
       ),
-      bottomNavigationBar: Container(
-        decoration: BoxDecoration(
-          color: Colors.white,
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.1),
-              blurRadius: 10,
-              offset: const Offset(0, -2),
-            ),
-          ],
-          borderRadius: const BorderRadius.only(
-            topLeft: Radius.circular(24),
-            topRight: Radius.circular(24),
+      bottomNavigationBar: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12),
+        child: Container(
+          height: 64,
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(28),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.06),
+                blurRadius: 10,
+                offset: const Offset(0, 6),
+              ),
+            ],
           ),
-        ),
-        child: ClipRRect(
-          borderRadius: const BorderRadius.only(
-            topLeft: Radius.circular(24),
-            topRight: Radius.circular(24),
-          ),
-          child: BottomNavigationBar(
-            currentIndex: _selectedIndex,
-            onTap: (index) {
-              setState(() {
-                _selectedIndex = index;
-              });
-            },
-            type: BottomNavigationBarType.fixed,
-            backgroundColor: Colors.white,
-            selectedItemColor: Colors.white,
-            unselectedItemColor: Colors.grey[600],
-            selectedLabelStyle: const TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.w600,
-            ),
-            unselectedLabelStyle: const TextStyle(fontSize: 12),
-            items: [
-              BottomNavigationBarItem(
-                icon: _buildNavIcon(Icons.home_outlined, 0),
-                label: 'Beranda',
-              ),
-              BottomNavigationBarItem(
-                icon: _buildNavIcon(Icons.inventory_2_outlined, 1),
-                label: 'Inventaris',
-              ),
-              BottomNavigationBarItem(
-                icon: _buildNavIcon(Icons.edit_note_outlined, 2),
-                label: 'Ruangan',
-              ),
-              BottomNavigationBarItem(
-                icon: _buildNavIcon(Icons.person_outline, 3),
-                label: 'Profil',
-              ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            children: [
+              _buildBottomIcon(Icons.home, 'Beranda', 0),
+              _buildBottomIcon(Icons.inventory_2, 'Inventaris', 1),
+              _buildBottomIcon(Icons.meeting_room, 'Ruangan', 2),
+              _buildBottomIcon(Icons.calendar_month, 'Kalender', 3),
+              _buildBottomIcon(Icons.person, 'Profil', 4),
             ],
           ),
         ),
@@ -468,23 +507,71 @@ class _InventarisPageState extends State<InventarisPage> {
     );
   }
 
-  Widget _buildNavIcon(IconData icon, int index) {
-    final isSelected = _selectedIndex == index;
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      decoration: BoxDecoration(
-        color: isSelected ? const Color(0xFF4CAF50) : Colors.transparent,
-        borderRadius: BorderRadius.circular(12),
+  Widget _buildBottomIcon(IconData icon, String label, int index) {
+    final bool active = _selectedIndex == index;
+    return GestureDetector(
+      onTap: () {
+        setState(() => _selectedIndex = index);
+        if (index == 0) {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => const HomePage()),
+          );
+        } else if (index == 2) {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => const RuanganPage()),
+          );
+        } else if (index == 3) {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => const KalenderPage()),
+          );
+        } else if (index == 4) {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => const ProfilePage()),
+          );
+        }
+      },
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: active ? const Color(0xFF1E8A3E) : Colors.transparent,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Icon(
+              icon,
+              size: 22,
+              color: active ? Colors.white : Colors.black54,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 11,
+              color: active ? const Color(0xFF1E8A3E) : Colors.black54,
+            ),
+          ),
+        ],
       ),
-      child: Icon(icon, color: isSelected ? Colors.white : Colors.grey[600]),
     );
   }
 
-  Widget _buildInventoryItem(InventoryItem item) {
-    final stockStatus = _getStockStatus(item.stock);
-    final stockColor = _getStockColor(item.stock);
-    final stockBgColor = _getStockBgColor(item.stock);
-    final isAvailable = item.stock > 0;
+  Widget _buildInventoryItem(
+    String title,
+    String subtitle,
+    IconData icon,
+    int stock,
+  ) {
+    final stockStatus = _getStockStatus(stock);
+    final stockColor = _getStockColor(stock);
+    final isAvailable = stock > 0;
 
     return Container(
       padding: const EdgeInsets.all(16),
@@ -499,113 +586,92 @@ class _InventarisPageState extends State<InventarisPage> {
           ),
         ],
       ),
-      child: Column(
+      child: Row(
         children: [
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFE8F5E9),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Icon(
-                  item.icon,
-                  color: const Color(0xFF4CAF50),
-                  size: 24,
-                ),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      item.name,
-                      style: const TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.black87,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      '${item.category} • ${item.stock} unit',
-                      style: TextStyle(fontSize: 12, color: Colors.grey[600]),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 12),
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 6,
-                ),
-                decoration: BoxDecoration(
-                  color: stockBgColor,
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(
-                      item.stock == 0
-                          ? Icons.cancel_outlined
-                          : item.stock < 10
-                          ? Icons.warning_amber_rounded
-                          : Icons.check_circle_outline,
-                      color: stockColor,
-                      size: 14,
-                    ),
-                    const SizedBox(width: 4),
-                    Text(
-                      stockStatus,
-                      style: TextStyle(
-                        color: stockColor,
-                        fontSize: 11,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: const Color(0xFFE8F5E9),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Icon(icon, color: const Color(0xFF4CAF50), size: 24),
           ),
-          const SizedBox(height: 12),
-          SizedBox(
-            width: double.infinity,
-            child: ElevatedButton(
-              onPressed: isAvailable ? () => _showBookingDialog(item) : null,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: isAvailable
-                    ? const Color(0xFF4CAF50)
-                    : Colors.grey[300],
-                disabledBackgroundColor: Colors.grey[300],
-                padding: const EdgeInsets.symmetric(vertical: 12),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: const TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.black87,
+                  ),
                 ),
-                elevation: 0,
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(
-                    isAvailable ? Icons.calendar_today : Icons.block,
-                    size: 16,
-                    color: isAvailable ? Colors.white : Colors.grey[600],
-                  ),
-                  const SizedBox(width: 8),
-                  Text(
-                    isAvailable ? 'Book Sekarang' : 'Tidak Tersedia',
-                    style: TextStyle(
-                      color: isAvailable ? Colors.white : Colors.grey[600],
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
+                const SizedBox(height: 4),
+                Text(
+                  subtitle,
+                  style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                ),
+                const SizedBox(height: 6),
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 4,
+                      ),
+                      decoration: BoxDecoration(
+                        color: stockColor.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.circle, size: 8, color: stockColor),
+                          const SizedBox(width: 4),
+                          Text(
+                            stockStatus,
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w600,
+                              color: stockColor,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
-                  ),
-                ],
+                    const SizedBox(width: 8),
+                    Text(
+                      '$stock unit',
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: Colors.grey[600],
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 12),
+          GestureDetector(
+            onTap: () => _handleBooking(title, stock),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+              decoration: BoxDecoration(
+                color: isAvailable ? const Color(0xFF4CAF50) : Colors.grey[400],
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Text(
+                'Book',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                ),
               ),
             ),
           ),
