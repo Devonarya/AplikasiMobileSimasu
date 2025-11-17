@@ -20,3 +20,5 @@ flutter:
   uses-material-design: true
   assets:
     - assets/images/simasu_mark.png
+    - assets/images/profile_default.png
+    - assets/images/profile_alt.png
