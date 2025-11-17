@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:home_page/main.dart';
+import 'package:simasu/pages/dashboard_page.dart';
+import 'package:simasu/pages/kalender_page.dart';
+import 'package:simasu/pages/profile_page.dart';
 
 import 'inventaris_page.dart';
 
@@ -185,7 +187,8 @@ class _RuanganPageState extends State<RuanganPage> {
               _buildBottomIcon(Icons.home, 'Beranda', 0),
               _buildBottomIcon(Icons.inventory_2, 'Inventaris', 1),
               _buildBottomIcon(Icons.meeting_room, 'Ruangan', 2),
-              _buildBottomIcon(Icons.person, 'Profil', 3),
+              _buildBottomIcon(Icons.calendar_month, 'Kalender', 3),
+              _buildBottomIcon(Icons.person, 'Profil', 4),
             ],
           ),
         ),
@@ -201,15 +204,25 @@ class _RuanganPageState extends State<RuanganPage> {
         setState(() => _selectedIndex = index);
 
         // Navigasi ke halaman Inventaris
-        if (index == 0) {
+        if (index == 1) {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => const InventarisPage()),
+          );
+        } else if (index == 0) {
           Navigator.push(
             context,
             MaterialPageRoute(builder: (context) => const HomePage()),
           );
-        } else if (index == 1) {
+        } else if (index == 3) {
           Navigator.push(
             context,
-            MaterialPageRoute(builder: (context) => const InventarisPage()),
+            MaterialPageRoute(builder: (context) => const KalenderPage()),
+          );
+        } else if (index == 4) {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => const ProfilePage()),
           );
         }
       },

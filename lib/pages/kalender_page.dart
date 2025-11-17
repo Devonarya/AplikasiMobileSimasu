@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:signup/pages/dashboard_page.dart';
-import 'package:signup/pages/inventaris_page.dart';
-import 'package:signup/pages/profile_page.dart';
-import 'package:signup/pages/ruangan_page.dart';
+import 'dashboard_page.dart';
+import 'inventaris_page.dart';
+import 'profile_page.dart';
+import 'ruangan_page.dart';
 
 class SimasuApp extends StatelessWidget {
   const SimasuApp({Key? key}) : super(key: key);

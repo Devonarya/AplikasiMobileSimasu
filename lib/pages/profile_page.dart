@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:simasu/pages/dashboard_page.dart';
+import 'package:simasu/pages/kalender_page.dart';
 import 'inventaris_page.dart';
 import 'ruangan_page.dart';
 
@@ -131,14 +133,14 @@ class _ProfilePageState extends State<ProfilePage> {
             MaterialPageRoute(builder: (context) => const RuanganPage()),
           );
         } else if (index == 3) {
-          // Navigator.push(
-          //   context,
-          //   MaterialPageRoute(builder: (context) => const CalendarPage()),
-          // );
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => const KalenderPage()),
+          );
         } else if (index == 0) {
           Navigator.push(
             context,
-            MaterialPageRoute(builder: (context) => const MasjidApp()),
+            MaterialPageRoute(builder: (context) => const HomePage()),
           );
         }
       },
