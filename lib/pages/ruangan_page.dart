@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:simasu/pages/dashboard_page.dart' as dashboard;
 import 'package:simasu/pages/kalender_page.dart';
 import 'package:simasu/pages/profile_page.dart';
-
 import 'inventaris_page.dart';
 
 class RuanganPage extends StatefulWidget {
@@ -13,7 +12,7 @@ class RuanganPage extends StatefulWidget {
 }
 
 class _RuanganPageState extends State<RuanganPage> {
-  int _selectedIndex = 2; // Default tab ke Ruangan
+  int _selectedIndex = 2;
 
   @override
   Widget build(BuildContext context) {
@@ -23,7 +22,7 @@ class _RuanganPageState extends State<RuanganPage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Header Section
+            // ================= HEADER =================
             Container(
               margin: const EdgeInsets.fromLTRB(16, 50, 16, 16),
               padding: const EdgeInsets.all(22),
@@ -101,7 +100,7 @@ class _RuanganPageState extends State<RuanganPage> {
               ),
             ),
 
-            // Section daftar ruangan
+            // ================= SECTION RUANGAN =================
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
               child: Column(
@@ -150,19 +149,20 @@ class _RuanganPageState extends State<RuanganPage> {
                   ),
                   const SizedBox(height: 16),
 
-                  // List ruangan
                   _buildRoomCard(
                     title: 'Aula Utama',
                     capacity: 'Kapasitas 250',
                     facilities: 'AC • Sound System • Panggung',
                   ),
                   const SizedBox(height: 12),
+
                   _buildRoomCard(
                     title: 'Ruang Serbaguna',
                     capacity: 'Kapasitas 20',
                     facilities: 'LCD • Karpet Tebal • Whiteboard',
                   ),
                   const SizedBox(height: 12),
+
                   _buildRoomCard(
                     title: 'Perpustakaan',
                     capacity: 'Kapasitas 40',
@@ -176,70 +176,71 @@ class _RuanganPageState extends State<RuanganPage> {
         ),
       ),
 
-      // Bottom Navigation
-      bottomNavigationBar: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12),
-        child: Container(
-          height: 64,
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(28),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.06),
-                blurRadius: 10,
-                offset: const Offset(0, 6),
-              ),
-            ],
-          ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
-            children: [
-              _buildBottomIcon(Icons.home, 'Beranda', 0),
-              _buildBottomIcon(Icons.inventory_2, 'Inventaris', 1),
-              _buildBottomIcon(Icons.meeting_room, 'Ruangan', 2),
-              _buildBottomIcon(Icons.calendar_month, 'Kalender', 3),
-              _buildBottomIcon(Icons.person, 'Profil', 4),
-            ],
-          ),
+      // ================= BOTTOM NAVIGATION =================
+      bottomNavigationBar: _buildBottomNavbar(),
+    );
+  }
+
+  // ================= BOTTOM NAVIGATION =================
+  Widget _buildBottomNavbar() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12),
+      child: Container(
+        height: 64,
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(28),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.06),
+              blurRadius: 10,
+              offset: const Offset(0, 6),
+            ),
+          ],
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceAround,
+          children: [
+            _buildBottomIcon(Icons.home, 'Beranda', 0),
+            _buildBottomIcon(Icons.inventory_2, 'Inventaris', 1),
+            _buildBottomIcon(Icons.meeting_room, 'Ruangan', 2),
+            _buildBottomIcon(Icons.calendar_month, 'Kalender', 3),
+            _buildBottomIcon(Icons.person, 'Profil', 4),
+          ],
         ),
       ),
     );
   }
 
-  // 📽 Widget untuk bottom navigation bar
+  // ================= BOTTOM ICON =================
   Widget _buildBottomIcon(IconData icon, String label, int index) {
     final bool active = _selectedIndex == index;
+
     return GestureDetector(
       onTap: () {
         setState(() => _selectedIndex = index);
-        if (index == 1) {
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (context) => const InventarisPage()),
-          );
-        } else if (index == 0) {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => const dashboard.MasjidApp(),
-            ),
-          );
-        } else if (index == 3) {
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (context) => const KalenderPage()),
-          );
-        } else if (index == 4) {
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (context) => const ProfilePage()),
-          );
+
+        switch (index) {
+          case 0:
+            Navigator.push(context,
+                MaterialPageRoute(builder: (_) => const dashboard.MasjidApp()));
+            break;
+          case 1:
+            Navigator.push(context,
+                MaterialPageRoute(builder: (_) => const InventarisPage()));
+            break;
+          case 3:
+            Navigator.push(
+                context, MaterialPageRoute(builder: (_) => const KalenderPage()));
+            break;
+          case 4:
+            Navigator.push(
+                context, MaterialPageRoute(builder: (_) => const ProfilePage()));
+            break;
         }
       },
       child: Column(
         mainAxisSize: MainAxisSize.min,
-        mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Container(
             padding: const EdgeInsets.all(8),
@@ -266,7 +267,7 @@ class _RuanganPageState extends State<RuanganPage> {
     );
   }
 
-  // 📽 Widget untuk kartu ruangan
+  // ================= RUANGAN CARD =================
   Widget _buildRoomCard({
     required String title,
     required String capacity,
@@ -300,11 +301,10 @@ class _RuanganPageState extends State<RuanganPage> {
                   ),
                 ),
                 const SizedBox(height: 10),
+
                 Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 6,
-                  ),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                   decoration: BoxDecoration(
                     color: const Color(0xFFDFF0E5),
                     borderRadius: BorderRadius.circular(16),
@@ -318,17 +318,19 @@ class _RuanganPageState extends State<RuanganPage> {
                     ),
                   ),
                 ),
+
                 const SizedBox(height: 10),
+
                 Row(
                   children: [
-                    Icon(Icons.check_circle_outline, 
-                         size: 16, 
-                         color: Colors.green[700]),
+                    Icon(Icons.check_circle_outline,
+                        size: 16, color: Colors.green[700]),
                     const SizedBox(width: 6),
                     Expanded(
                       child: Text(
                         facilities,
-                        style: TextStyle(fontSize: 12, color: Colors.black54),
+                        style:
+                            const TextStyle(fontSize: 12, color: Colors.black54),
                       ),
                     ),
                   ],
@@ -336,17 +338,16 @@ class _RuanganPageState extends State<RuanganPage> {
               ],
             ),
           ),
+
           const SizedBox(width: 12),
+
           ElevatedButton(
-            onPressed: () {
-              _showPeminjamanDialog(title);
-            },
+            onPressed: () => _showPeminjamanDialog(title),
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFF1E8A3E),
               padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(20),
-              ),
+                  borderRadius: BorderRadius.circular(20)),
               elevation: 0,
             ),
             child: const Text(
@@ -365,28 +366,30 @@ class _RuanganPageState extends State<RuanganPage> {
     );
   }
 
-  // Dialog untuk form peminjaman
+  // ================= FORM DIALOG =================
   void _showPeminjamanDialog(String roomName) {
-    TextEditingController namaController = TextEditingController();
-    TextEditingController kepentinganController = TextEditingController();
-    TextEditingController kontakController = TextEditingController();
-    DateTime tanggalMulai = DateTime.now();
-    DateTime tanggalSelesai = DateTime.now();
-    TimeOfDay waktuMulai = TimeOfDay.now();
-    TimeOfDay waktuSelesai = TimeOfDay(hour: TimeOfDay.now().hour + 2, minute: 0);
+    final nama = TextEditingController();
+    final kepentingan = TextEditingController();
+    final kontak = TextEditingController();
+
+    DateTime tanggal = DateTime.now();
+    TimeOfDay mulai = TimeOfDay.now();
+    TimeOfDay selesai =
+        TimeOfDay(hour: TimeOfDay.now().hour + 2, minute: 0);
 
     showDialog(
       context: context,
       builder: (dialogContext) => StatefulBuilder(
-        builder: (context, setDialogState) => Dialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        builder: (dialogCtx, setStateDialog) => Dialog(
+          shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(24)),
           child: SingleChildScrollView(
             child: Padding(
               padding: const EdgeInsets.all(24),
               child: Column(
-                mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  // ------------------- Header -------------------
                   Row(
                     children: [
                       Container(
@@ -398,106 +401,61 @@ class _RuanganPageState extends State<RuanganPage> {
                         child: const Icon(
                           Icons.meeting_room,
                           color: Color(0xFF2F6E3E),
-                          size: 24,
+                          size: 22,
                         ),
                       ),
                       const SizedBox(width: 12),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Text(
-                              'Ajukan Peminjaman',
-                              style: TextStyle(
-                                fontSize: 20,
-                                fontWeight: FontWeight.w800,
-                              ),
-                            ),
-                            Text(
-                              roomName,
-                              style: TextStyle(
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            "Ajukan Peminjaman",
+                            style: TextStyle(
+                                fontSize: 20, fontWeight: FontWeight.w800),
+                          ),
+                          Text(
+                            roomName,
+                            style: TextStyle(
                                 fontSize: 14,
                                 color: Colors.green[700],
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
+                                fontWeight: FontWeight.w600),
+                          ),
+                        ],
+                      )
                     ],
                   ),
                   const SizedBox(height: 24),
 
-                  _buildInputLabel('Nama Pemohon'),
-                  TextField(
-                    controller: namaController,
-                    decoration: _inputDecoration('Contoh: Ahmad Fauzi'),
-                  ),
+                  // ------------------- Fields -------------------
+                  _label("Nama Pemohon"),
+                  _input(nama, "Contoh: Ahmad Fauzi"),
                   const SizedBox(height: 16),
 
-                  _buildInputLabel('Kepentingan/Acara'),
-                  TextField(
-                    controller: kepentinganController,
-                    decoration: _inputDecoration('Contoh: Kajian Bulanan'),
-                    maxLines: 2,
-                  ),
+                  _label("Kepentingan/Acara"),
+                  _input(kepentingan, "Contoh: Kajian Bulanan", max: 2),
                   const SizedBox(height: 16),
 
-                  _buildInputLabel('Nomor Kontak'),
-                  TextField(
-                    controller: kontakController,
-                    keyboardType: TextInputType.phone,
-                    decoration: _inputDecoration('Contoh: 081234567890'),
-                  ),
+                  _label("Nomor Kontak"),
+                  _input(kontak, "Contoh: 081234567890",
+                      type: TextInputType.phone),
                   const SizedBox(height: 16),
 
-                  _buildInputLabel('Tanggal Peminjaman'),
+                  _label("Tanggal Peminjaman"),
                   InkWell(
                     onTap: () async {
-                      DateTime? picked = await showDatePicker(
+                      DateTime? pick = await showDatePicker(
                         context: dialogContext,
-                        initialDate: tanggalMulai,
+                        initialDate: tanggal,
                         firstDate: DateTime.now(),
-                        lastDate: DateTime.now().add(const Duration(days: 365)),
-                        builder: (context, child) {
-                          return Theme(
-                            data: Theme.of(context).copyWith(
-                              colorScheme: const ColorScheme.light(
-                                primary: Color(0xFF1E8A3E),
-                                onPrimary: Colors.white,
-                              ),
-                            ),
-                            child: child!,
-                          );
-                        },
+                        lastDate:
+                            DateTime.now().add(const Duration(days: 365)),
                       );
-                      if (picked != null) {
-                        setDialogState(() {
-                          tanggalMulai = picked;
-                          tanggalSelesai = picked;
-                        });
+                      if (pick != null) {
+                        setStateDialog(() => tanggal = pick);
                       }
                     },
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 14,
-                      ),
-                      decoration: BoxDecoration(
-                        border: Border.all(color: Colors.grey.shade300),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text(
-                            '${tanggalMulai.day.toString().padLeft(2, '0')}/${tanggalMulai.month.toString().padLeft(2, '0')}/${tanggalMulai.year}',
-                            style: const TextStyle(fontSize: 14),
-                          ),
-                          const Icon(Icons.calendar_today, size: 18, color: Color(0xFF2F6E3E)),
-                        ],
-                      ),
-                    ),
+                    child: _dateBox(
+                        "${tanggal.day.toString().padLeft(2, '0')}/${tanggal.month.toString().padLeft(2, '0')}/${tanggal.year}"),
                   ),
                   const SizedBox(height: 16),
 
@@ -507,51 +465,20 @@ class _RuanganPageState extends State<RuanganPage> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            _buildInputLabel('Waktu Mulai'),
+                            _label("Waktu Mulai"),
                             InkWell(
                               onTap: () async {
-                                TimeOfDay? picked = await showTimePicker(
-                                  context: dialogContext,
-                                  initialTime: waktuMulai,
-                                  builder: (context, child) {
-                                    return Theme(
-                                      data: Theme.of(context).copyWith(
-                                        colorScheme: const ColorScheme.light(
-                                          primary: Color(0xFF1E8A3E),
-                                          onPrimary: Colors.white,
-                                        ),
-                                      ),
-                                      child: child!,
-                                    );
-                                  },
-                                );
-                                if (picked != null) {
-                                  setDialogState(() {
-                                    waktuMulai = picked;
-                                  });
+                                TimeOfDay? pick =
+                                    await showTimePicker(
+                                        context: dialogContext,
+                                        initialTime: mulai);
+                                if (pick != null) {
+                                  setStateDialog(() => mulai = pick);
                                 }
                               },
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 12,
-                                  vertical: 14,
-                                ),
-                                decoration: BoxDecoration(
-                                  border: Border.all(color: Colors.grey.shade300),
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                child: Row(
-                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                  children: [
-                                    Text(
-                                      '${waktuMulai.hour.toString().padLeft(2, '0')}:${waktuMulai.minute.toString().padLeft(2, '0')}',
-                                      style: const TextStyle(fontSize: 14),
-                                    ),
-                                    const Icon(Icons.access_time, size: 18, color: Color(0xFF2F6E3E)),
-                                  ],
-                                ),
-                              ),
-                            ),
+                              child: _dateBox(
+                                  "${mulai.hour.toString().padLeft(2, '0')}:${mulai.minute.toString().padLeft(2, '0')}"),
+                            )
                           ],
                         ),
                       ),
@@ -560,51 +487,20 @@ class _RuanganPageState extends State<RuanganPage> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            _buildInputLabel('Waktu Selesai'),
+                            _label("Waktu Selesai"),
                             InkWell(
                               onTap: () async {
-                                TimeOfDay? picked = await showTimePicker(
-                                  context: dialogContext,
-                                  initialTime: waktuSelesai,
-                                  builder: (context, child) {
-                                    return Theme(
-                                      data: Theme.of(context).copyWith(
-                                        colorScheme: const ColorScheme.light(
-                                          primary: Color(0xFF1E8A3E),
-                                          onPrimary: Colors.white,
-                                        ),
-                                      ),
-                                      child: child!,
-                                    );
-                                  },
-                                );
-                                if (picked != null) {
-                                  setDialogState(() {
-                                    waktuSelesai = picked;
-                                  });
+                                TimeOfDay? pick =
+                                    await showTimePicker(
+                                        context: dialogContext,
+                                        initialTime: selesai);
+                                if (pick != null) {
+                                  setStateDialog(() => selesai = pick);
                                 }
                               },
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 12,
-                                  vertical: 14,
-                                ),
-                                decoration: BoxDecoration(
-                                  border: Border.all(color: Colors.grey.shade300),
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                child: Row(
-                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                  children: [
-                                    Text(
-                                      '${waktuSelesai.hour.toString().padLeft(2, '0')}:${waktuSelesai.minute.toString().padLeft(2, '0')}',
-                                      style: const TextStyle(fontSize: 14),
-                                    ),
-                                    const Icon(Icons.access_time, size: 18, color: Color(0xFF2F6E3E)),
-                                  ],
-                                ),
-                              ),
-                            ),
+                              child: _dateBox(
+                                  "${selesai.hour.toString().padLeft(2, '0')}:${selesai.minute.toString().padLeft(2, '0')}"),
+                            )
                           ],
                         ),
                       ),
@@ -612,124 +508,77 @@ class _RuanganPageState extends State<RuanganPage> {
                   ),
                   const SizedBox(height: 24),
 
+                  // ------------------- Buttons -------------------
                   Row(
                     children: [
                       Expanded(
                         child: TextButton(
                           onPressed: () => Navigator.pop(dialogContext),
                           style: TextButton.styleFrom(
-                            padding: const EdgeInsets.symmetric(vertical: 14),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                          ),
-                          child: const Text(
-                            'Batal',
-                            style: TextStyle(
-                              color: Colors.grey,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
+                              padding:
+                                  const EdgeInsets.symmetric(vertical: 14)),
+                          child: const Text("Batal",
+                              style: TextStyle(
+                                  color: Colors.grey,
+                                  fontWeight: FontWeight.w600)),
                         ),
                       ),
                       const SizedBox(width: 12),
                       Expanded(
                         child: ElevatedButton(
                           onPressed: () {
-                            if (namaController.text.isNotEmpty &&
-                                kepentinganController.text.isNotEmpty &&
-                                kontakController.text.isNotEmpty) {
-                              Navigator.pop(dialogContext);
-                              
-                              // Tampilkan snackbar dengan animasi menggunakan context asli
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: Row(
-                                    children: [
-                                      Container(
-                                        padding: const EdgeInsets.all(8),
-                                        decoration: const BoxDecoration(
-                                          color: Colors.white24,
-                                          shape: BoxShape.circle,
-                                        ),
-                                        child: const Icon(
-                                          Icons.check_circle,
-                                          color: Colors.white,
-                                          size: 20,
-                                        ),
-                                      ),
-                                      const SizedBox(width: 12),
-                                      Expanded(
-                                        child: Column(
-                                          crossAxisAlignment: CrossAxisAlignment.start,
-                                          mainAxisSize: MainAxisSize.min,
-                                          children: [
-                                            const Text(
-                                              'Berhasil!',
-                                              style: TextStyle(
-                                                fontWeight: FontWeight.w700,
-                                                fontSize: 15,
-                                              ),
-                                            ),
-                                            Text(
-                                              'Peminjaman $roomName telah diajukan',
-                                              style: const TextStyle(fontSize: 12),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                  backgroundColor: const Color(0xFF1E8A3E),
-                                  behavior: SnackBarBehavior.floating,
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(16),
-                                  ),
-                                  margin: const EdgeInsets.all(16),
-                                  duration: const Duration(seconds: 3),
+                            if (nama.text.isEmpty ||
+                                kepentingan.text.isEmpty ||
+                                kontak.text.isEmpty) {
+                              ScaffoldMessenger.of(this.context)
+                                  .showSnackBar(SnackBar(
+                                backgroundColor: Colors.orange[700],
+                                behavior: SnackBarBehavior.floating,
+                                content: const Row(
+                                  children: [
+                                    Icon(Icons.warning_amber_rounded,
+                                        color: Colors.white),
+                                    SizedBox(width: 12),
+                                    Text("Mohon lengkapi semua data"),
+                                  ],
                                 ),
-                              );
-                            } else {
-                              // Tampilkan warning snackbar menggunakan context asli
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: const Row(
-                                    children: [
-                                      Icon(Icons.warning_amber_rounded, color: Colors.white),
-                                      SizedBox(width: 12),
-                                      Text('Mohon lengkapi semua data'),
-                                    ],
-                                  ),
-                                  backgroundColor: Colors.orange[700],
-                                  behavior: SnackBarBehavior.floating,
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(16),
-                                  ),
-                                  margin: const EdgeInsets.all(16),
-                                ),
-                              );
+                              ));
+                              return;
                             }
+
+                            Navigator.pop(dialogContext);
+
+                            Future.delayed(
+                                const Duration(milliseconds: 120), () {
+                              ScaffoldMessenger.of(this.context)
+                                  .showSnackBar(SnackBar(
+                                backgroundColor: const Color(0xFF1E8A3E),
+                                behavior: SnackBarBehavior.floating,
+                                margin: const EdgeInsets.all(16),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius:
+                                      BorderRadius.circular(16),
+                                ),
+                                content: Text(
+                                    "Peminjaman $roomName berhasil diajukan!"),
+                              ));
+                            });
                           },
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFF1E8A3E),
-                            padding: const EdgeInsets.symmetric(vertical: 14),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            elevation: 0,
-                          ),
+                              backgroundColor: const Color(0xFF1E8A3E),
+                              padding:
+                                  const EdgeInsets.symmetric(vertical: 14)),
                           child: const Text(
-                            'Ajukan',
+                            "Ajukan",
                             style: TextStyle(
-                              color: Colors.white,
-                              fontWeight: FontWeight.w700,
-                              fontSize: 15,
-                            ),
+                                fontSize: 15,
+                                fontWeight: FontWeight.w700,
+                                color: Colors.white),
                           ),
                         ),
                       ),
                     ],
-                  ),
+                  )
                 ],
               ),
             ),
@@ -739,37 +588,45 @@ class _RuanganPageState extends State<RuanganPage> {
     );
   }
 
-  Widget _buildInputLabel(String label) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
-      child: Text(
-        label,
-        style: const TextStyle(
-          fontSize: 14,
-          fontWeight: FontWeight.w600,
-          color: Colors.black87,
-        ),
+  // ================= Helper Widgets =================
+
+  Widget _label(String text) => Padding(
+        padding: const EdgeInsets.only(bottom: 6),
+        child: Text(text,
+            style: const TextStyle(
+                fontWeight: FontWeight.w600, fontSize: 14)),
+      );
+
+  Widget _input(TextEditingController c, String hint,
+      {int max = 1, TextInputType type = TextInputType.text}) {
+    return TextField(
+      controller: c,
+      maxLines: max,
+      keyboardType: type,
+      decoration: InputDecoration(
+        hintText: hint,
+        border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12)),
+        contentPadding:
+            const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
       ),
     );
   }
 
-  InputDecoration _inputDecoration(String hint) {
-    return InputDecoration(
-      hintText: hint,
-      hintStyle: TextStyle(color: Colors.grey.shade400, fontSize: 14),
-      border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-        borderSide: BorderSide(color: Colors.grey.shade300),
+  Widget _dateBox(String text) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+      decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: Colors.grey.shade300)),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(text),
+          const Icon(Icons.calendar_today,
+              size: 18, color: Color(0xFF2F6E3E)),
+        ],
       ),
-      enabledBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-        borderSide: BorderSide(color: Colors.grey.shade300),
-      ),
-      focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-        borderSide: const BorderSide(color: Color(0xFF1E8A3E), width: 2),
-      ),
-      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
     );
   }
 }
