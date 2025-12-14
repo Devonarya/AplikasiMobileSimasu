@@ -1,11 +1,18 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+
 import 'package:simasu/pages/announcement_detail_page.dart';
 import 'package:simasu/pages/kalender_page.dart';
 import 'package:simasu/pages/profile_page.dart';
 import 'package:simasu/pages/inventaris_page.dart';
 import 'package:simasu/pages/ruangan_page.dart';
-import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:simasu/pages/upcoming_event_page.dart';
+
+import 'package:simasu/models/agenda_model.dart';
+import 'package:simasu/services/agenda_service.dart';
+
+import 'package:simasu/models/announcement_model.dart';
+import 'package:simasu/services/announcement_service.dart';
 
 class MasjidApp extends StatelessWidget {
   const MasjidApp({super.key});
@@ -25,7 +32,7 @@ class MasjidApp extends StatelessWidget {
   }
 }
 
-// ===================== HOMEPAGE =====================
+//HOMEPAGE
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
   @override
@@ -36,6 +43,32 @@ class _HomePageState extends State<HomePage> {
   int _selectedIndex = 0;
   final FlutterLocalNotificationsPlugin notificationsPlugin =
       FlutterLocalNotificationsPlugin();
+
+  // Variabel untuk data API Agenda
+  late Future<List<AgendaItem>> _agendaFuture;
+  final AgendaService _agendaService = AgendaService();
+
+  // Variabel untuk data API Announcement
+  late Future<List<AnnouncementItem>> _announcementFuture;
+  final AnnouncementService _announcementService = AnnouncementService();
+
+  @override
+  void initState() {
+    super.initState();
+    _initNotifications();
+
+    // Panggil API saat halaman dimuat
+    _agendaFuture = _agendaService.fetchAgendas();
+    _announcementFuture = _announcementService.fetchAnnouncements();
+  }
+
+  // Fungsi refresh untuk menarik data ulang (Agenda & Pengumuman)
+  Future<void> _refreshData() async {
+    setState(() {
+      _agendaFuture = _agendaService.fetchAgendas();
+      _announcementFuture = _announcementService.fetchAnnouncements();
+    });
+  }
 
   Future<void> _initNotifications() async {
     const android = AndroidInitializationSettings('@mipmap/ic_launcher');
@@ -68,46 +101,9 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  // contoh data agenda
-  final List<AgendaItem> agenda = [
-    AgendaItem(
-      title: 'Kajian Tafsir Surah Yasin',
-      subtitle: 'Ust. Ahmad Faiz, Lc.',
-      datetime: 'Ahad, 12 Januari 2025',
-      tag: 'Ruang Utama',
-    ),
-    AgendaItem(
-      title: 'Majelis Dzikir & Shalawat',
-      subtitle: 'Majelis Shalawat Al-Hikam',
-      datetime: 'Kamis, 16 Januari 2025',
-      tag: 'Aula Masjid',
-      timeLabel: '19.30 WIB',
-    ),
-    AgendaItem(
-      title: 'Kelas Tahsin Remaja',
-      subtitle: 'Ustadzah Nur Aini',
-      datetime: 'Sabtu, 18 Januari 2025',
-      tag: 'Perpustakaan',
-      timeLabel: '08.00 WIB',
-    ),
-    AgendaItem(
-      title: 'Kelas Agama Umum',
-      subtitle: 'Ustad Subhan',
-      datetime: 'Minggu, 19 Januari 2025',
-      tag: 'Ruang Sekre',
-      timeLabel: '08.00 WIB',
-    ),
-  ];
-
-  @override
-  void initState() {
-    super.initState();
-    _initNotifications();
-  }
-
   @override
   Widget build(BuildContext context) {
-    final double horizontalPadding = 16;
+    const double horizontalPadding = 16;
     return Scaffold(
       body: SafeArea(
         child: Padding(
@@ -127,146 +123,243 @@ class _HomePageState extends State<HomePage> {
 
               // Main scroll area
               Expanded(
-                child: SingleChildScrollView(
-                  physics: const BouncingScrollPhysics(),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      GreetingCard(userName: 'A'),
-                      const SizedBox(height: 18),
+                child: RefreshIndicator(
+                  onRefresh: _refreshData,
+                  child: SingleChildScrollView(
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const GreetingCard(userName: 'Jamaah'),
+                        const SizedBox(height: 18),
 
-                      // Berita section
-                      const Text(
-                        'Berita & Pengumuman',
-                        style: TextStyle(
-                          fontSize: 13,
-                          color: Colors.black54,
-                          fontWeight: FontWeight.w600,
+                        // Berita section
+                        const Text(
+                          'Berita & Pengumuman',
+                          style: TextStyle(
+                            fontSize: 13,
+                            color: Colors.black54,
+                            fontWeight: FontWeight.w600,
+                          ),
                         ),
-                      ),
-                      const SizedBox(height: 12),
+                        const SizedBox(height: 12),
 
-                      // Announcement cards
-                      SizedBox(
-                        height: 130,
-                        child: ListView(
-                          scrollDirection: Axis.horizontal,
-                          children: const [
-                            SizedBox(width: 2),
-                            AnnouncementCard(
-                              title: 'Peringatan Isra Mi\'raj & Santunan Yatim',
-                              subtitle:
-                                  'Mari hadir bersama keluarga pada 27 Rajab, selepas Maghrib di aula utama masjid.',
-                              tag: 'Kegiatan Utama',
-                              width: 260,
+                        // Announcement Cards (FROM API)
+                        SizedBox(
+                          height: 130,
+                          child: FutureBuilder<List<AnnouncementItem>>(
+                            future: _announcementFuture,
+                            builder: (context, snapshot) {
+                              if (snapshot.connectionState ==
+                                  ConnectionState.waiting) {
+                                return const Center(
+                                  child: CircularProgressIndicator(),
+                                );
+                              }
+
+                              if (snapshot.hasError) {
+                                return Center(
+                                  child: Padding(
+                                    padding: const EdgeInsets.all(8.0),
+                                    child: Text(
+                                      "Gagal memuat berita",
+                                      style: TextStyle(
+                                        color: Colors.grey[600],
+                                        fontSize: 12,
+                                      ),
+                                    ),
+                                  ),
+                                );
+                              }
+
+                              final list = snapshot.data ?? [];
+                              if (list.isEmpty) {
+                                return Container(
+                                  width: double.infinity,
+                                  decoration: BoxDecoration(
+                                    color: Colors.white,
+                                    borderRadius: BorderRadius.circular(16),
+                                  ),
+                                  child: const Center(
+                                    child: Text(
+                                      "Belum ada pengumuman",
+                                      style: TextStyle(color: Colors.grey),
+                                    ),
+                                  ),
+                                );
+                              }
+
+                              return ListView.separated(
+                                scrollDirection: Axis.horizontal,
+                                physics: const BouncingScrollPhysics(),
+                                itemCount: list.length,
+                                separatorBuilder: (context, index) =>
+                                    const SizedBox(width: 12),
+                                itemBuilder: (context, index) {
+                                  final item = list[index];
+                                  final double cardWidth = index == 0
+                                      ? 260
+                                      : 220;
+
+                                  return AnnouncementCard(
+                                    title: item.title,
+                                    subtitle: item.subtitle,
+                                    tag: item.tag,
+                                    width: cardWidth,
+                                  );
+                                },
+                              );
+                            },
+                          ),
+                        ),
+                        const SizedBox(height: 22),
+
+                        // Agenda header
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            const Text(
+                              'Upcoming Event',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w700,
+                                color: Colors.black87,
+                              ),
                             ),
-                            SizedBox(width: 12),
-                            AnnouncementCard(
-                              title: 'Program Wakaf Berjalan',
-                              subtitle:
-                                  'Dukung perluasan ruang belajar & perpustakaan masjid.',
-                              tag: 'Program',
-                              width: 220,
-                            ),
-                            SizedBox(width: 12),
-                            AnnouncementCard(
-                              title: 'Donasi Ramadhan',
-                              subtitle:
-                                  'Terkumpul Rp 15.000.000 untuk santunan dhuafa.',
-                              tag: 'Update',
-                              width: 220,
+                            TextButton(
+                              onPressed: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) =>
+                                        const UpcomingEventPage(),
+                                  ),
+                                );
+                              },
+                              style: TextButton.styleFrom(
+                                padding: EdgeInsets.zero,
+                                minimumSize: const Size(40, 30),
+                              ),
+                              child: const Text('Lihat semua'),
                             ),
                           ],
                         ),
-                      ),
-                      const SizedBox(height: 22),
+                        const SizedBox(height: 8),
 
-                      // Agenda header
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          const Text(
-                            'Upcoming Event',
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w700,
-                              color: Colors.black87,
-                            ),
-                          ),
-                          TextButton(
-                            onPressed: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) =>
-                                      const UpcomingEventPage(),
+                        // Agenda list (FROM API)
+                        FutureBuilder<List<AgendaItem>>(
+                          future: _agendaFuture,
+                          builder: (context, snapshot) {
+                            if (snapshot.connectionState ==
+                                ConnectionState.waiting) {
+                              return const Padding(
+                                padding: EdgeInsets.symmetric(vertical: 32.0),
+                                child: Center(
+                                  child: CircularProgressIndicator(),
                                 ),
                               );
-                            },
-                            style: TextButton.styleFrom(
-                              padding: EdgeInsets.zero,
-                              minimumSize: const Size(40, 30),
-                            ),
-                            child: const Text('Lihat semua'),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 8),
+                            }
 
-                      // Agenda list
-                      Column(
-                        children: agenda
-                            .map(
-                              (a) => Padding(
+                            if (snapshot.hasError) {
+                              return Padding(
                                 padding: const EdgeInsets.symmetric(
-                                  vertical: 8.0,
+                                  vertical: 20.0,
                                 ),
-                                child: GestureDetector(
-                                  onTap: () {
-                                    // Dialog saat card ditekan
-                                    showDialog(
-                                      context: context,
-                                      builder: (ctx) => AlertDialog(
-                                        title: Text(a.title),
-                                        content: Text(
-                                          'Pembicara: ${a.subtitle}\nTanggal: ${a.datetime}\nTempat: ${a.tag}',
-                                        ),
-                                        actions: [
-                                          TextButton(
-                                            onPressed: () {
-                                              Navigator.pop(ctx);
-                                              _showNotification();
-                                              ScaffoldMessenger.of(
-                                                context,
-                                              ).showSnackBar(
-                                                const SnackBar(
-                                                  content: Text(
-                                                    'Peringatan sudah diaktifkan',
-                                                  ),
-                                                  duration: Duration(
-                                                    seconds: 2,
-                                                  ),
-                                                ),
-                                              ); // kirim notifikasi lokal
-                                            },
-                                            child: const Text('Ingatkan Saya'),
-                                          ),
-                                          TextButton(
-                                            onPressed: () => Navigator.pop(ctx),
-                                            child: const Text('Tutup'),
-                                          ),
-                                        ],
+                                child: Center(
+                                  child: Column(
+                                    children: [
+                                      const Icon(
+                                        Icons.error_outline,
+                                        color: Colors.red,
                                       ),
-                                    );
-                                  },
-                                  child: AgendaCard(item: a),
+                                      const SizedBox(height: 8),
+                                      Text(
+                                        "Gagal memuat agenda.\n${snapshot.error.toString().replaceFirst('Exception: ', '')}",
+                                        textAlign: TextAlign.center,
+                                        style: const TextStyle(
+                                          color: Colors.grey,
+                                        ),
+                                      ),
+                                      TextButton(
+                                        onPressed: _refreshData,
+                                        child: const Text("Coba Lagi"),
+                                      ),
+                                    ],
+                                  ),
                                 ),
-                              ),
-                            )
-                            .toList(),
-                      ),
-                      const SizedBox(height: 80),
-                    ],
+                              );
+                            }
+
+                            final agendaList = snapshot.data ?? [];
+
+                            if (agendaList.isEmpty) {
+                              return const Padding(
+                                padding: EdgeInsets.symmetric(vertical: 32.0),
+                                child: Center(
+                                  child: Text(
+                                    "Belum ada agenda mendatang.",
+                                    style: TextStyle(color: Colors.grey),
+                                  ),
+                                ),
+                              );
+                            }
+
+                            return Column(
+                              children: agendaList.map((item) {
+                                return Padding(
+                                  padding: const EdgeInsets.symmetric(
+                                    vertical: 8.0,
+                                  ),
+                                  child: GestureDetector(
+                                    onTap: () {
+                                      showDialog(
+                                        context: context,
+                                        builder: (ctx) => AlertDialog(
+                                          title: Text(item.title),
+                                          content: Text(
+                                            'Pembicara: ${item.subtitle}\nTanggal: ${item.formattedDate}\nJam: ${item.formattedTime}\nTempat: ${item.tag}',
+                                          ),
+                                          actions: [
+                                            TextButton(
+                                              onPressed: () {
+                                                Navigator.pop(ctx);
+                                                _showNotification();
+                                                ScaffoldMessenger.of(
+                                                  context,
+                                                ).showSnackBar(
+                                                  const SnackBar(
+                                                    content: Text(
+                                                      'Peringatan sudah diaktifkan',
+                                                    ),
+                                                    duration: Duration(
+                                                      seconds: 2,
+                                                    ),
+                                                  ),
+                                                );
+                                              },
+                                              child: const Text(
+                                                'Ingatkan Saya',
+                                              ),
+                                            ),
+                                            TextButton(
+                                              onPressed: () =>
+                                                  Navigator.pop(ctx),
+                                              child: const Text('Tutup'),
+                                            ),
+                                          ],
+                                        ),
+                                      );
+                                    },
+                                    child: AgendaCard(item: item),
+                                  ),
+                                );
+                              }).toList(),
+                            );
+                          },
+                        ),
+                        const SizedBox(height: 80),
+                      ],
+                    ),
                   ),
                 ),
               ),
@@ -363,7 +456,7 @@ class _HomePageState extends State<HomePage> {
   }
 }
 
-// Components
+// ===================== COMPONENTS =====================
 
 class GreetingCard extends StatelessWidget {
   final String userName;
@@ -424,15 +517,6 @@ class GreetingCard extends StatelessWidget {
                 ),
               ],
             ),
-          ),
-          Container(
-            margin: const EdgeInsets.only(left: 12),
-            decoration: BoxDecoration(
-              color: const Color(0xFFE6F7EC),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            padding: const EdgeInsets.all(8),
-            child: const Icon(Icons.settings, color: Color(0xFF1E8A3E)),
           ),
         ],
       ),
@@ -504,6 +588,8 @@ class AnnouncementCard extends StatelessWidget {
             const SizedBox(height: 10),
             Text(
               title,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
               style: const TextStyle(
                 color: Colors.white,
                 fontSize: 15,
@@ -514,6 +600,8 @@ class AnnouncementCard extends StatelessWidget {
             Expanded(
               child: Text(
                 subtitle,
+                maxLines: 3,
+                overflow: TextOverflow.ellipsis,
                 style: const TextStyle(color: Colors.white70, fontSize: 12),
               ),
             ),
@@ -574,7 +662,7 @@ class AgendaCard extends StatelessWidget {
                     ),
                     const SizedBox(width: 8),
                     Text(
-                      item.datetime,
+                      item.formattedDate,
                       style: const TextStyle(
                         fontSize: 12,
                         color: Colors.black45,
@@ -585,7 +673,7 @@ class AgendaCard extends StatelessWidget {
               ],
             ),
           ),
-          if (item.timeLabel != null)
+          if (item.formattedTime.isNotEmpty)
             Column(
               mainAxisSize: MainAxisSize.min,
               children: [
@@ -599,7 +687,7 @@ class AgendaCard extends StatelessWidget {
                     borderRadius: BorderRadius.circular(10),
                   ),
                   child: Text(
-                    item.timeLabel!,
+                    item.formattedTime,
                     style: const TextStyle(fontSize: 12),
                   ),
                 ),
@@ -609,20 +697,4 @@ class AgendaCard extends StatelessWidget {
       ),
     );
   }
-}
-
-class AgendaItem {
-  final String title;
-  final String subtitle;
-  final String datetime;
-  final String tag;
-  final String? timeLabel;
-
-  AgendaItem({
-    required this.title,
-    required this.subtitle,
-    required this.datetime,
-    required this.tag,
-    this.timeLabel,
-  });
 }
