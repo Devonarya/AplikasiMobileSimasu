@@ -6,6 +6,10 @@ import 'package:simasu/pages/inventaris_page.dart';
 import 'package:simasu/pages/ruangan_page.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:simasu/pages/upcoming_event_page.dart';
+import 'dart:convert';
+import 'package:simasu/models/announcement_model.dart';
+import 'package:simasu/models/event_model.dart';
+import 'package:simasu/services/api_service.dart';
 
 class MasjidApp extends StatelessWidget {
   const MasjidApp({super.key});
@@ -34,6 +38,10 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> {
   int _selectedIndex = 0;
+  List<AnnouncementModel> _announcements = [];
+  List<EventModel> _events = [];
+  bool _isLoading = true;
+
   final FlutterLocalNotificationsPlugin notificationsPlugin =
       FlutterLocalNotificationsPlugin();
 
@@ -68,41 +76,27 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  // contoh data agenda
-  final List<AgendaItem> agenda = [
-    AgendaItem(
-      title: 'Kajian Tafsir Surah Yasin',
-      subtitle: 'Ust. Ahmad Faiz, Lc.',
-      datetime: 'Ahad, 12 Januari 2025',
-      tag: 'Ruang Utama',
-    ),
-    AgendaItem(
-      title: 'Majelis Dzikir & Shalawat',
-      subtitle: 'Majelis Shalawat Al-Hikam',
-      datetime: 'Kamis, 16 Januari 2025',
-      tag: 'Aula Masjid',
-      timeLabel: '19.30 WIB',
-    ),
-    AgendaItem(
-      title: 'Kelas Tahsin Remaja',
-      subtitle: 'Ustadzah Nur Aini',
-      datetime: 'Sabtu, 18 Januari 2025',
-      tag: 'Perpustakaan',
-      timeLabel: '08.00 WIB',
-    ),
-    AgendaItem(
-      title: 'Kelas Agama Umum',
-      subtitle: 'Ustad Subhan',
-      datetime: 'Minggu, 19 Januari 2025',
-      tag: 'Ruang Sekre',
-      timeLabel: '08.00 WIB',
-    ),
-  ];
+  Future<void> loadDashboardData() async {
+    final annRes = await ApiService.getAnnouncements();
+    final evRes = await ApiService.getEvents();
+
+    final List annData = jsonDecode(annRes.body);
+    final List evData = jsonDecode(evRes.body);
+
+    setState(() {
+      _announcements = annData
+          .map((e) => AnnouncementModel.fromJson(e))
+          .toList();
+      _events = evData.map((e) => EventModel.fromJson(e)).toList();
+      _isLoading = false;
+    });
+  }
 
   @override
   void initState() {
     super.initState();
     _initNotifications();
+    loadDashboardData();
   }
 
   @override
@@ -149,36 +143,26 @@ class _HomePageState extends State<HomePage> {
                       // Announcement cards
                       SizedBox(
                         height: 130,
-                        child: ListView(
-                          scrollDirection: Axis.horizontal,
-                          children: const [
-                            SizedBox(width: 2),
-                            AnnouncementCard(
-                              title: 'Peringatan Isra Mi\'raj & Santunan Yatim',
-                              subtitle:
-                                  'Mari hadir bersama keluarga pada 27 Rajab, selepas Maghrib di aula utama masjid.',
-                              tag: 'Kegiatan Utama',
-                              width: 260,
-                            ),
-                            SizedBox(width: 12),
-                            AnnouncementCard(
-                              title: 'Program Wakaf Berjalan',
-                              subtitle:
-                                  'Dukung perluasan ruang belajar & perpustakaan masjid.',
-                              tag: 'Program',
-                              width: 220,
-                            ),
-                            SizedBox(width: 12),
-                            AnnouncementCard(
-                              title: 'Donasi Ramadhan',
-                              subtitle:
-                                  'Terkumpul Rp 15.000.000 untuk santunan dhuafa.',
-                              tag: 'Update',
-                              width: 220,
-                            ),
-                          ],
-                        ),
+                        child: _isLoading
+                            ? const Center(child: CircularProgressIndicator())
+                            : ListView.builder(
+                                scrollDirection: Axis.horizontal,
+                                itemCount: _announcements.length,
+                                itemBuilder: (context, index) {
+                                  final a = _announcements[index];
+                                  return Padding(
+                                    padding: const EdgeInsets.only(right: 12),
+                                    child: AnnouncementCard(
+                                      title: a.title,
+                                      subtitle: a.content,
+                                      tag: a.tag,
+                                      width: 230,
+                                    ),
+                                  );
+                                },
+                              ),
                       ),
+
                       const SizedBox(height: 22),
 
                       // Agenda header
@@ -214,57 +198,72 @@ class _HomePageState extends State<HomePage> {
                       const SizedBox(height: 8),
 
                       // Agenda list
-                      Column(
-                        children: agenda
-                            .map(
-                              (a) => Padding(
-                                padding: const EdgeInsets.symmetric(
-                                  vertical: 8.0,
-                                ),
-                                child: GestureDetector(
-                                  onTap: () {
-                                    // Dialog saat card ditekan
-                                    showDialog(
-                                      context: context,
-                                      builder: (ctx) => AlertDialog(
-                                        title: Text(a.title),
-                                        content: Text(
-                                          'Pembicara: ${a.subtitle}\nTanggal: ${a.datetime}\nTempat: ${a.tag}',
-                                        ),
-                                        actions: [
-                                          TextButton(
-                                            onPressed: () {
-                                              Navigator.pop(ctx);
-                                              _showNotification();
-                                              ScaffoldMessenger.of(
-                                                context,
-                                              ).showSnackBar(
-                                                const SnackBar(
-                                                  content: Text(
-                                                    'Peringatan sudah diaktifkan',
-                                                  ),
-                                                  duration: Duration(
-                                                    seconds: 2,
+                      _isLoading
+                          ? const Center(child: CircularProgressIndicator())
+                          : Column(
+                              children: _events
+                                  .map(
+                                    (e) => Padding(
+                                      padding: const EdgeInsets.symmetric(
+                                        vertical: 8.0,
+                                      ),
+                                      child: GestureDetector(
+                                        onTap: () {
+                                          showDialog(
+                                            context: context,
+                                            builder: (ctx) => AlertDialog(
+                                              title: Text(e.title),
+                                              content: Text(
+                                                'Pembicara: ${e.speaker}\n'
+                                                'Tanggal: ${e.eventDate}\n'
+                                                'Tempat: ${e.location}',
+                                              ),
+                                              actions: [
+                                                TextButton(
+                                                  onPressed: () {
+                                                    Navigator.pop(ctx);
+                                                    _showNotification();
+                                                    ScaffoldMessenger.of(
+                                                      context,
+                                                    ).showSnackBar(
+                                                      const SnackBar(
+                                                        content: Text(
+                                                          'Peringatan sudah diaktifkan',
+                                                        ),
+                                                        duration: Duration(
+                                                          seconds: 2,
+                                                        ),
+                                                      ),
+                                                    );
+                                                  },
+                                                  child: const Text(
+                                                    'Ingatkan Saya',
                                                   ),
                                                 ),
-                                              ); // kirim notifikasi lokal
-                                            },
-                                            child: const Text('Ingatkan Saya'),
+                                                TextButton(
+                                                  onPressed: () =>
+                                                      Navigator.pop(ctx),
+                                                  child: const Text('Tutup'),
+                                                ),
+                                              ],
+                                            ),
+                                          );
+                                        },
+                                        child: AgendaCard(
+                                          item: AgendaItem(
+                                            title: e.title,
+                                            subtitle: e.speaker,
+                                            datetime: e.eventDate,
+                                            tag: e.location,
+                                            timeLabel: e.eventTime,
                                           ),
-                                          TextButton(
-                                            onPressed: () => Navigator.pop(ctx),
-                                            child: const Text('Tutup'),
-                                          ),
-                                        ],
+                                        ),
                                       ),
-                                    );
-                                  },
-                                  child: AgendaCard(item: a),
-                                ),
-                              ),
-                            )
-                            .toList(),
-                      ),
+                                    ),
+                                  )
+                                  .toList(),
+                            ),
+
                       const SizedBox(height: 80),
                     ],
                   ),
