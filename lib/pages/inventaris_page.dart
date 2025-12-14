@@ -4,6 +4,11 @@ import 'package:simasu/pages/kalender_page.dart';
 import 'package:simasu/pages/profile_page.dart';
 import 'package:simasu/pages/ruangan_page.dart';
 
+import 'package:simasu/models/inventory_item.dart';
+import 'package:simasu/services/inventory_service.dart';
+import 'package:simasu/services/booking_service.dart';
+import 'package:simasu/services/session_manager.dart';
+
 class InventarisPage extends StatefulWidget {
   const InventarisPage({Key? key}) : super(key: key);
 
@@ -14,87 +19,180 @@ class InventarisPage extends StatefulWidget {
 class _InventarisPageState extends State<InventarisPage> {
   int _selectedIndex = 1;
 
-  // Data inventaris dengan stok
-  final List<Map<String, dynamic>> _inventoryItems = [
-    {
-      'title': 'Speaker Portable JBL',
-      'subtitle': 'Peralatan Audiovisual',
-      'icon': Icons.speaker,
-      'stock': 4,
-    },
-    {
-      'title': 'Proyektor Full HD',
-      'subtitle': 'Multimedia Sangat baik',
-      'icon': Icons.videocam,
-      'stock': 0,
-    },
-    {
-      'title': 'Karpet Tambahan',
-      'subtitle': 'Perabotan Sholat-Lantai',
-      'icon': Icons.calendar_view_day,
-      'stock': 15,
-    },
-    {
-      'title': 'Microphone Wireless',
-      'subtitle': 'Peralatan Audio',
-      'icon': Icons.mic,
-      'stock': 8,
-    },
-  ];
+  late Future<List<InventoryItem>> _inventoryFuture;
+  final InventoryService _inventoryService = InventoryService();
+  final BookingService _bookingService = BookingService();
+
+  @override
+  void initState() {
+    super.initState();
+    _inventoryFuture = _inventoryService.fetchInventory();
+  }
+
+  Future<void> _refreshInventory() async {
+    setState(() {
+      _inventoryFuture = _inventoryService.fetchInventory();
+    });
+    try {
+      await _inventoryFuture;
+    } catch (_) {
+      // ditangani UI
+    }
+  }
 
   String _getStockStatus(int stock) {
-    if (stock == 0) return 'Habis';
+    if (stock <= 0) return 'Habis';
     if (stock < 10) return 'Terbatas';
     return 'Tersedia';
   }
 
   Color _getStockColor(int stock) {
-    if (stock == 0) return Colors.red;
+    if (stock <= 0) return Colors.red;
     if (stock < 10) return Colors.orange;
     return const Color(0xFF4CAF50);
   }
 
-  void _handleBooking(String itemName, int stock) {
-    if (stock == 0) {
+  IconData _iconForCategory(String? category) {
+    final c = (category ?? '').toLowerCase();
+    if (c.contains('audio') || c.contains('speaker')) return Icons.speaker;
+    if (c.contains('video') ||
+        c.contains('proyektor') ||
+        c.contains('multimedia')) {
+      return Icons.videocam;
+    }
+    if (c.contains('mic') || c.contains('microphone')) return Icons.mic;
+    if (c.contains('sholat') ||
+        c.contains('karpet') ||
+        c.contains('perlengkapan')) {
+      return Icons.mosque;
+    }
+    return Icons.inventory_2;
+  }
+
+  Future<void> _handleBooking(InventoryItem item) async {
+    if (!item.isAvailable) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Maaf, $itemName sedang tidak tersedia'),
+          content: Text('Maaf, ${item.name} sedang tidak tersedia'),
           backgroundColor: Colors.red,
+          behavior: SnackBarBehavior.floating,
         ),
       );
       return;
     }
 
-    TextEditingController nameController = TextEditingController();
-    TextEditingController phoneController = TextEditingController();
+    final nameController = TextEditingController();
+    final phoneController = TextEditingController();
+    final purposeController = TextEditingController();
     int quantity = 1;
 
     DateTime? bookingDate;
     DateTime? returnDate;
+    bool isSubmitting = false;
 
-    showDialog(
+    // Prefill dari session (kalau ada)
+    SessionManager.getUserName().then((v) {
+      if (v != null &&
+          v.trim().isNotEmpty &&
+          nameController.text.trim().isEmpty) {
+        nameController.text = v;
+      }
+    });
+    SessionManager.getUserPhone().then((v) {
+      if (v != null &&
+          v.trim().isNotEmpty &&
+          phoneController.text.trim().isEmpty) {
+        phoneController.text = v;
+      }
+    });
+
+    await showDialog(
       context: context,
-      builder: (context) {
+      builder: (dialogContext) {
         return StatefulBuilder(
-          builder: (context, setState) {
+          builder: (dialogContext, setDialogState) {
+            Future<void> pickBookingDate() async {
+              final pick = await showDatePicker(
+                context: dialogContext,
+                firstDate: DateTime.now(),
+                lastDate: DateTime(2030),
+                initialDate: bookingDate ?? DateTime.now(),
+              );
+
+              if (pick != null) {
+                setDialogState(() => bookingDate = pick);
+                if (returnDate != null && returnDate!.isBefore(pick)) {
+                  setDialogState(() => returnDate = null);
+                }
+              }
+            }
+
+            Future<void> pickReturnDate() async {
+              if (bookingDate == null) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text(
+                      'Harap pilih tanggal booking terlebih dahulu',
+                    ),
+                    backgroundColor: Colors.orange,
+                    behavior: SnackBarBehavior.floating,
+                  ),
+                );
+                return;
+              }
+
+              final pick = await showDatePicker(
+                context: dialogContext,
+                firstDate: bookingDate!,
+                lastDate: DateTime(2030),
+                initialDate: bookingDate!,
+              );
+
+              if (pick != null) {
+                setDialogState(() => returnDate = pick);
+              }
+            }
+
             return AlertDialog(
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(16),
               ),
               title: Text(
-                "Booking $itemName",
+                'Booking ${item.name}',
                 style: const TextStyle(fontWeight: FontWeight.bold),
               ),
               content: SingleChildScrollView(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text("Nama Peminjam", style: TextStyle(fontSize: 13)),
+                    Text(
+                      item.category == null || item.category!.trim().isEmpty
+                          ? 'Kategori: -'
+                          : 'Kategori: ${item.category}',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.grey.shade700,
+                      ),
+                    ),
+                    if (item.description != null &&
+                        item.description!.trim().isNotEmpty) ...[
+                      const SizedBox(height: 6),
+                      Text(
+                        item.description!,
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.grey.shade600,
+                        ),
+                      ),
+                    ],
+                    const SizedBox(height: 16),
+
+                    const Text('Nama Peminjam', style: TextStyle(fontSize: 13)),
                     const SizedBox(height: 6),
                     TextField(
                       controller: nameController,
                       decoration: InputDecoration(
-                        hintText: "Masukkan nama",
+                        hintText: 'Masukkan nama',
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
                         ),
@@ -102,13 +200,13 @@ class _InventarisPageState extends State<InventarisPage> {
                     ),
                     const SizedBox(height: 14),
 
-                    const Text("Nomor Telepon", style: TextStyle(fontSize: 13)),
+                    const Text('Nomor Telepon', style: TextStyle(fontSize: 13)),
                     const SizedBox(height: 6),
                     TextField(
                       controller: phoneController,
                       keyboardType: TextInputType.phone,
                       decoration: InputDecoration(
-                        hintText: "Masukkan nomor telepon",
+                        hintText: 'Masukkan nomor telepon',
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
                         ),
@@ -116,21 +214,41 @@ class _InventarisPageState extends State<InventarisPage> {
                     ),
                     const SizedBox(height: 14),
 
-                    const Text("Jumlah Barang", style: TextStyle(fontSize: 13)),
+                    const Text(
+                      'Keperluan / Catatan',
+                      style: TextStyle(fontSize: 13),
+                    ),
+                    const SizedBox(height: 6),
+                    TextField(
+                      controller: purposeController,
+                      maxLines: 2,
+                      decoration: InputDecoration(
+                        hintText: 'Contoh: untuk acara kajian',
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 14),
+
+                    const Text('Jumlah Barang', style: TextStyle(fontSize: 13)),
                     const SizedBox(height: 6),
                     Row(
                       children: [
                         IconButton(
-                          onPressed: () {
-                            if (quantity > 1) setState(() => quantity--);
-                          },
+                          onPressed: isSubmitting
+                              ? null
+                              : () {
+                                  if (quantity > 1) {
+                                    setDialogState(() => quantity--);
+                                  }
+                                },
                           icon: const Icon(
                             Icons.remove_circle,
                             color: Colors.red,
                             size: 28,
                           ),
                         ),
-
                         Text(
                           quantity.toString(),
                           style: const TextStyle(
@@ -138,21 +256,23 @@ class _InventarisPageState extends State<InventarisPage> {
                             fontWeight: FontWeight.bold,
                           ),
                         ),
-
                         IconButton(
-                          onPressed: () {
-                            if (quantity < stock) setState(() => quantity++);
-                          },
+                          onPressed: isSubmitting
+                              ? null
+                              : () {
+                                  if (quantity < item.stock) {
+                                    setDialogState(() => quantity++);
+                                  }
+                                },
                           icon: const Icon(
                             Icons.add_circle,
                             color: Colors.green,
                             size: 28,
                           ),
                         ),
-
                         const SizedBox(width: 8),
                         Text(
-                          "/ $stock unit tersedia",
+                          '/ ${item.stock} unit tersedia',
                           style: TextStyle(
                             color: Colors.grey[600],
                             fontSize: 12,
@@ -160,31 +280,15 @@ class _InventarisPageState extends State<InventarisPage> {
                         ),
                       ],
                     ),
-                    const SizedBox(height: 20),
+                    const SizedBox(height: 18),
 
                     const Text(
-                      "Tanggal Booking",
+                      'Tanggal Booking',
                       style: TextStyle(fontSize: 13),
                     ),
                     const SizedBox(height: 6),
-
                     GestureDetector(
-                      onTap: () async {
-                        DateTime? pick = await showDatePicker(
-                          context: context,
-                          firstDate: DateTime.now(),
-                          lastDate: DateTime(2030),
-                          initialDate: bookingDate ?? DateTime.now(),
-                        );
-
-                        if (pick != null) {
-                          setState(() => bookingDate = pick);
-                          if (returnDate != null &&
-                              returnDate!.isBefore(pick)) {
-                            setState(() => returnDate = null);
-                          }
-                        }
-                      },
+                      onTap: isSubmitting ? null : pickBookingDate,
                       child: Container(
                         padding: const EdgeInsets.symmetric(
                           horizontal: 14,
@@ -199,8 +303,8 @@ class _InventarisPageState extends State<InventarisPage> {
                           children: [
                             Text(
                               bookingDate == null
-                                  ? "Pilih tanggal booking"
-                                  : "${bookingDate!.day}-${bookingDate!.month}-${bookingDate!.year}",
+                                  ? 'Pilih tanggal booking'
+                                  : '${bookingDate!.day}-${bookingDate!.month}-${bookingDate!.year}',
                               style: TextStyle(
                                 fontSize: 13,
                                 color: bookingDate == null
@@ -213,41 +317,15 @@ class _InventarisPageState extends State<InventarisPage> {
                         ),
                       ),
                     ),
+                    const SizedBox(height: 14),
 
-                    const SizedBox(height: 20),
-
-                    // TANGGAL KEMBALI
                     const Text(
-                      "Tanggal Kembali",
+                      'Tanggal Kembali',
                       style: TextStyle(fontSize: 13),
                     ),
                     const SizedBox(height: 6),
-
                     GestureDetector(
-                      onTap: () async {
-                        if (bookingDate == null) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text(
-                                'Harap pilih tanggal booking terlebih dahulu',
-                              ),
-                              backgroundColor: Colors.orange,
-                            ),
-                          );
-                          return;
-                        }
-
-                        DateTime? pick = await showDatePicker(
-                          context: context,
-                          firstDate: bookingDate!,
-                          lastDate: DateTime(2030),
-                          initialDate: bookingDate!,
-                        );
-
-                        if (pick != null) {
-                          setState(() => returnDate = pick);
-                        }
-                      },
+                      onTap: isSubmitting ? null : pickReturnDate,
                       child: Container(
                         padding: const EdgeInsets.symmetric(
                           horizontal: 14,
@@ -262,8 +340,8 @@ class _InventarisPageState extends State<InventarisPage> {
                           children: [
                             Text(
                               returnDate == null
-                                  ? "Pilih tanggal kembali"
-                                  : "${returnDate!.day}-${returnDate!.month}-${returnDate!.year}",
+                                  ? 'Pilih tanggal kembali'
+                                  : '${returnDate!.day}-${returnDate!.month}-${returnDate!.year}',
                               style: TextStyle(
                                 fontSize: 13,
                                 color: returnDate == null
@@ -276,14 +354,25 @@ class _InventarisPageState extends State<InventarisPage> {
                         ),
                       ),
                     ),
+
+                    const SizedBox(height: 12),
+                    Text(
+                      'Catatan: saat ini API mencatat 1 unit per pengajuan. Kalau kamu booking 3 unit, aplikasi akan membuat 3 pengajuan (pending).',
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: Colors.grey.shade600,
+                        height: 1.3,
+                      ),
+                    ),
                   ],
                 ),
               ),
-
               actions: [
                 TextButton(
-                  onPressed: () => Navigator.pop(context),
-                  child: const Text("Batal"),
+                  onPressed: isSubmitting
+                      ? null
+                      : () => Navigator.pop(dialogContext),
+                  child: const Text('Batal'),
                 ),
                 ElevatedButton(
                   style: ElevatedButton.styleFrom(
@@ -292,30 +381,128 @@ class _InventarisPageState extends State<InventarisPage> {
                       borderRadius: BorderRadius.circular(10),
                     ),
                   ),
-                  onPressed: () {
-                    if (nameController.text.isEmpty ||
-                        phoneController.text.isEmpty ||
-                        bookingDate == null ||
-                        returnDate == null) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text("Harap isi semua data"),
-                          backgroundColor: Colors.orange,
-                        ),
-                      );
-                      return;
-                    }
+                  onPressed: isSubmitting
+                      ? null
+                      : () async {
+                          if (nameController.text.trim().isEmpty ||
+                              phoneController.text.trim().isEmpty ||
+                              bookingDate == null ||
+                              returnDate == null) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('Harap isi semua data'),
+                                backgroundColor: Colors.orange,
+                                behavior: SnackBarBehavior.floating,
+                              ),
+                            );
+                            return;
+                          }
 
-                    Navigator.pop(context);
+                          final start = DateTime(
+                            bookingDate!.year,
+                            bookingDate!.month,
+                            bookingDate!.day,
+                            8,
+                            0,
+                          );
+                          final end = DateTime(
+                            returnDate!.year,
+                            returnDate!.month,
+                            returnDate!.day,
+                            17,
+                            0,
+                          );
 
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text("Berhasil booking $itemName x$quantity!"),
-                        backgroundColor: const Color(0xFF4CAF50),
-                      ),
-                    );
-                  },
-                  child: const Text("Booking"),
+                          if (!end.isAfter(start)) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text(
+                                  'Tanggal kembali harus setelah tanggal booking',
+                                ),
+                                backgroundColor: Colors.orange,
+                                behavior: SnackBarBehavior.floating,
+                              ),
+                            );
+                            return;
+                          }
+
+                          final notes =
+                              'Nama Peminjam: ${nameController.text.trim()}\n'
+                              'Kontak: ${phoneController.text.trim()}\n'
+                              'Jumlah: $quantity\n'
+                              'Keperluan: ${purposeController.text.trim().isEmpty ? '-' : purposeController.text.trim()}';
+
+                          setDialogState(() => isSubmitting = true);
+
+                          int successCount = 0;
+
+                          try {
+                            await _bookingService.createBooking(
+                              type: 'inventory',
+                              itemId: item.id,
+                              itemName: item.name,
+                              start: start,
+                              end: end,
+                              quantity: quantity,
+                              notes: notes,
+                            );
+                            final successCount = quantity;
+
+                            if (!mounted) return;
+                            Navigator.pop(dialogContext);
+
+                            ScaffoldMessenger.of(this.context).showSnackBar(
+                              SnackBar(
+                                content: Text(
+                                  'Pengajuan berhasil dikirim (${successCount} unit) — menunggu persetujuan admin',
+                                ),
+                                backgroundColor: const Color(0xFF4CAF50),
+                                behavior: SnackBarBehavior.floating,
+                              ),
+                            );
+                          } catch (e) {
+                            // Kalau sebagian berhasil, tutup dialog dan beri info.
+                            if (successCount > 0) {
+                              if (!mounted) return;
+                              Navigator.pop(dialogContext);
+                              ScaffoldMessenger.of(this.context).showSnackBar(
+                                SnackBar(
+                                  content: Text(
+                                    "Sebagian berhasil: $successCount dari $quantity. ${e.toString().replaceFirst('Exception: ', '')}",
+                                  ),
+                                  backgroundColor: Colors.orange[700],
+                                  behavior: SnackBarBehavior.floating,
+                                ),
+                              );
+                            } else {
+                              setDialogState(() => isSubmitting = false);
+                              ScaffoldMessenger.of(this.context).showSnackBar(
+                                SnackBar(
+                                  content: Text(
+                                    e.toString().replaceFirst(
+                                      'Exception: ',
+                                      '',
+                                    ),
+                                  ),
+                                  backgroundColor: Colors.red,
+                                  behavior: SnackBarBehavior.floating,
+                                ),
+                              );
+                            }
+                          }
+                        },
+                  child: isSubmitting
+                      ? const SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            valueColor: AlwaysStoppedAnimation<Color>(
+                              Colors.white,
+                            ),
+                          ),
+                        )
+                      : const Text('Booking'),
                 ),
               ],
             );
@@ -341,139 +528,236 @@ class _InventarisPageState extends State<InventarisPage> {
             fontWeight: FontWeight.w500,
           ),
         ),
+        actions: [
+          IconButton(
+            tooltip: 'Refresh',
+            onPressed: _refreshInventory,
+            icon: const Icon(Icons.refresh, color: Colors.black54),
+          ),
+        ],
       ),
-      body: SingleChildScrollView(
-        child: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Container(
-                padding: const EdgeInsets.all(24),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(20),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.05),
-                      blurRadius: 10,
-                      offset: const Offset(0, 4),
-                    ),
-                  ],
-                ),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'MASJID SYAMSUL ULUM',
-                            style: TextStyle(
-                              fontSize: 11,
-                              color: Colors.grey[600],
-                              letterSpacing: 0.5,
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          const Text(
-                            'Kelola Inventaris',
-                            style: TextStyle(
-                              fontSize: 22,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.black87,
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            'Peminjaman barang cepat dan transparan untuk semua jamaah',
-                            style: TextStyle(
-                              fontSize: 13,
-                              color: Colors.grey[600],
-                              height: 1.4,
-                            ),
-                          ),
-                        ],
+      body: RefreshIndicator(
+        onRefresh: _refreshInventory,
+        child: SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          child: Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(24),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(20),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.05),
+                        blurRadius: 10,
+                        offset: const Offset(0, 4),
                       ),
-                    ),
-                    const SizedBox(width: 16),
-                    Container(
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFE8F5E9),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: const Icon(
-                        Icons.inventory_2,
-                        color: Color(0xFF4CAF50),
-                        size: 24,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 24),
-
-              Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFE8F5E9),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: const Icon(
-                      Icons.inventory_2_outlined,
-                      color: Color(0xFF4CAF50),
-                      size: 18,
-                    ),
+                    ],
                   ),
-                  const SizedBox(width: 12),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                  child: Row(
                     children: [
-                      Text(
-                        'INVENTARIS MASJID',
-                        style: TextStyle(
-                          fontSize: 10,
-                          color: Colors.grey[600],
-                          letterSpacing: 0.5,
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'MASJID SYAMSUL ULUM',
+                              style: TextStyle(
+                                fontSize: 11,
+                                color: Colors.grey[600],
+                                letterSpacing: 0.5,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            const Text(
+                              'Kelola Inventaris',
+                              style: TextStyle(
+                                fontSize: 22,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.black87,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              'Peminjaman barang cepat dan transparan untuk semua jamaah',
+                              style: TextStyle(
+                                fontSize: 13,
+                                color: Colors.grey[600],
+                                height: 1.4,
+                              ),
+                            ),
+                          ],
                         ),
                       ),
-                      const SizedBox(height: 2),
-                      const Text(
-                        'Peminjaman Barang',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.black87,
+                      const SizedBox(width: 16),
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFE8F5E9),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: const Icon(
+                          Icons.inventory_2,
+                          color: Color(0xFF4CAF50),
+                          size: 24,
                         ),
                       ),
                     ],
                   ),
-                ],
-              ),
-              const SizedBox(height: 8),
-              Text(
-                'Pilih barang yang tersedia dan ajukan peminjaman dengan mudah.',
-                style: TextStyle(fontSize: 13, color: Colors.grey[600]),
-              ),
-              const SizedBox(height: 20),
+                ),
+                const SizedBox(height: 24),
 
-              // List inventaris
-              ...List.generate(_inventoryItems.length, (index) {
-                final item = _inventoryItems[index];
-                return Padding(
-                  padding: const EdgeInsets.only(bottom: 12),
-                  child: _buildInventoryItem(
-                    item['title'],
-                    item['subtitle'],
-                    item['icon'],
-                    item['stock'],
-                  ),
-                );
-              }),
-            ],
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFE8F5E9),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: const Icon(
+                        Icons.inventory_2_outlined,
+                        color: Color(0xFF4CAF50),
+                        size: 18,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'INVENTARIS MASJID',
+                          style: TextStyle(
+                            fontSize: 10,
+                            color: Colors.grey[600],
+                            letterSpacing: 0.5,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        const Text(
+                          'Peminjaman Barang',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.black87,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Pilih barang yang tersedia dan ajukan peminjaman dengan mudah.',
+                  style: TextStyle(fontSize: 13, color: Colors.grey[600]),
+                ),
+                const SizedBox(height: 20),
+
+                FutureBuilder<List<InventoryItem>>(
+                  future: _inventoryFuture,
+                  builder: (context, snapshot) {
+                    if (snapshot.connectionState == ConnectionState.waiting) {
+                      return const Padding(
+                        padding: EdgeInsets.symmetric(vertical: 40),
+                        child: Center(child: CircularProgressIndicator()),
+                      );
+                    }
+
+                    if (snapshot.hasError) {
+                      return Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(16),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.05),
+                              blurRadius: 10,
+                              offset: const Offset(0, 4),
+                            ),
+                          ],
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              'Gagal memuat inventaris',
+                              style: TextStyle(fontWeight: FontWeight.w700),
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              snapshot.error.toString().replaceFirst(
+                                'Exception: ',
+                                '',
+                              ),
+                              style: TextStyle(
+                                color: Colors.grey.shade700,
+                                fontSize: 12,
+                              ),
+                            ),
+                            const SizedBox(height: 12),
+                            SizedBox(
+                              height: 40,
+                              child: ElevatedButton.icon(
+                                onPressed: _refreshInventory,
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: const Color(0xFF4CAF50),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                ),
+                                icon: const Icon(
+                                  Icons.refresh,
+                                  color: Colors.white,
+                                ),
+                                label: const Text('Coba lagi'),
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+                    }
+
+                    final items = snapshot.data ?? <InventoryItem>[];
+                    if (items.isEmpty) {
+                      return Container(
+                        padding: const EdgeInsets.all(20),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(16),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.05),
+                              blurRadius: 10,
+                              offset: const Offset(0, 4),
+                            ),
+                          ],
+                        ),
+                        child: const Center(
+                          child: Text(
+                            'Belum ada data inventaris.',
+                            style: TextStyle(color: Colors.black54),
+                          ),
+                        ),
+                      );
+                    }
+
+                    return Column(
+                      children: [
+                        for (final item in items) ...[
+                          _buildInventoryItem(item),
+                          const SizedBox(height: 12),
+                        ],
+                      ],
+                    );
+                  },
+                ),
+              ],
+            ),
           ),
         ),
       ),
@@ -563,15 +847,17 @@ class _InventarisPageState extends State<InventarisPage> {
     );
   }
 
-  Widget _buildInventoryItem(
-    String title,
-    String subtitle,
-    IconData icon,
-    int stock,
-  ) {
-    final stockStatus = _getStockStatus(stock);
-    final stockColor = _getStockColor(stock);
-    final isAvailable = stock > 0;
+  Widget _buildInventoryItem(InventoryItem item) {
+    final stockStatus = _getStockStatus(item.stock);
+    final stockColor = _getStockColor(item.stock);
+    final isAvailable = item.isAvailable;
+    final icon = _iconForCategory(item.category);
+
+    final subtitle = (item.category != null && item.category!.trim().isNotEmpty)
+        ? item.category!.trim()
+        : (item.description != null && item.description!.trim().isNotEmpty)
+        ? item.description!.trim()
+        : '-';
 
     return Container(
       padding: const EdgeInsets.all(16),
@@ -602,7 +888,7 @@ class _InventarisPageState extends State<InventarisPage> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  title,
+                  item.name,
                   style: const TextStyle(
                     fontSize: 15,
                     fontWeight: FontWeight.w600,
@@ -612,6 +898,8 @@ class _InventarisPageState extends State<InventarisPage> {
                 const SizedBox(height: 4),
                 Text(
                   subtitle,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
                   style: TextStyle(fontSize: 12, color: Colors.grey[600]),
                 ),
                 const SizedBox(height: 6),
@@ -644,7 +932,7 @@ class _InventarisPageState extends State<InventarisPage> {
                     ),
                     const SizedBox(width: 8),
                     Text(
-                      '$stock unit',
+                      '${item.stock} unit',
                       style: TextStyle(
                         fontSize: 11,
                         color: Colors.grey[600],
@@ -658,14 +946,14 @@ class _InventarisPageState extends State<InventarisPage> {
           ),
           const SizedBox(width: 12),
           GestureDetector(
-            onTap: () => _handleBooking(title, stock),
+            onTap: () => _handleBooking(item),
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
               decoration: BoxDecoration(
                 color: isAvailable ? const Color(0xFF4CAF50) : Colors.grey[400],
                 borderRadius: BorderRadius.circular(20),
               ),
-              child: Text(
+              child: const Text(
                 'Book',
                 style: TextStyle(
                   color: Colors.white,
