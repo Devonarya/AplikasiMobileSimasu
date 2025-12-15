@@ -76,7 +76,6 @@ class _AuthPageState extends State<AuthPage> {
   Future<void> _redirectIfHasToken() async {
     final token = await SessionManager.getToken();
     if (token != null && token.isNotEmpty) {
-      // Jika sudah ada token, langsung masuk dashboard.
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (!mounted) return;
         Navigator.of(
@@ -230,6 +229,9 @@ class _AuthCardState extends State<_AuthCard> {
 
   bool _isLoading = false;
 
+  bool _obscurePass = true;
+  bool _obscureConfirm = true;
+
   @override
   void dispose() {
     _name.dispose();
@@ -313,13 +315,27 @@ class _AuthCardState extends State<_AuthCard> {
 
           Text('Kata Sandi', style: _labelStyle),
           const SizedBox(height: 8),
+
           TextField(
             controller: _pass,
             focusNode: _passFocus,
-            obscureText: true,
-            decoration: const InputDecoration(
+            obscureText: _obscurePass,
+            decoration: InputDecoration(
               hintText: 'Minimal 6 karakter',
-              prefixIcon: Icon(Icons.lock_outline),
+              prefixIcon: const Icon(Icons.lock_outline),
+              suffixIcon: IconButton(
+                icon: Icon(
+                  _obscurePass
+                      ? Icons.visibility_outlined
+                      : Icons.visibility_off_outlined,
+                  color: Colors.grey,
+                ),
+                onPressed: () {
+                  setState(() {
+                    _obscurePass = !_obscurePass;
+                  });
+                },
+              ),
             ),
           ),
 
@@ -327,12 +343,26 @@ class _AuthCardState extends State<_AuthCard> {
             const SizedBox(height: 16),
             Text('Konfirmasi Kata Sandi', style: _labelStyle),
             const SizedBox(height: 8),
+
             TextField(
               controller: _confirm,
-              obscureText: true,
-              decoration: const InputDecoration(
+              obscureText: _obscureConfirm,
+              decoration: InputDecoration(
                 hintText: 'Ulangi kata sandi',
-                prefixIcon: Icon(Icons.lock_reset_outlined),
+                prefixIcon: const Icon(Icons.lock_reset_outlined),
+                suffixIcon: IconButton(
+                  icon: Icon(
+                    _obscureConfirm
+                        ? Icons.visibility_outlined
+                        : Icons.visibility_off_outlined,
+                    color: Colors.grey,
+                  ),
+                  onPressed: () {
+                    setState(() {
+                      _obscureConfirm = !_obscureConfirm;
+                    });
+                  },
+                ),
               ),
             ),
           ],
@@ -502,7 +532,6 @@ class _AuthCardState extends State<_AuthCard> {
         phone: phone,
       );
 
-      // Auto login setelah register biar UX enak.
       await AuthService().login(email: email, password: pass);
 
       if (!mounted) return;
