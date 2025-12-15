@@ -101,6 +101,15 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
+  List<AgendaItem> _filterRecentAgendas(List<AgendaItem> agendas) {
+    final now = DateTime.now();
+
+    return agendas.where((agenda) {
+      final difference = agenda.datetime.difference(now);
+      return difference.inMinutes >= -60;
+    }).toList();
+  }
+
   @override
   Widget build(BuildContext context) {
     const double horizontalPadding = 16;
@@ -144,7 +153,7 @@ class _HomePageState extends State<HomePage> {
                         ),
                         const SizedBox(height: 12),
 
-                        // Announcement Cards (FROM API)
+                        // Announcement Cards
                         SizedBox(
                           height: 130,
                           child: FutureBuilder<List<AnnouncementItem>>(
@@ -292,20 +301,34 @@ class _HomePageState extends State<HomePage> {
 
                             final agendaList = snapshot.data ?? [];
 
-                            if (agendaList.isEmpty) {
+                            // Filter agenda: belum lewat atau sudah lewat maksimal 1 jam
+                            final filteredAgendaList = agendaList.where((item) {
+                              final difference = item.datetime.difference(
+                                DateTime.now(),
+                              );
+                              return difference.inMinutes >=
+                                  -60; // >= -60 artinya maksimal 1 jam lewat
+                            }).toList();
+
+                            if (filteredAgendaList.isEmpty) {
                               return const Padding(
                                 padding: EdgeInsets.symmetric(vertical: 32.0),
                                 child: Center(
                                   child: Text(
-                                    "Belum ada agenda mendatang.",
+                                    "Belum ada agenda mendekati atau dalam 1 jam terakhir.",
                                     style: TextStyle(color: Colors.grey),
                                   ),
                                 ),
                               );
                             }
 
+                            // Optional: urutkan dari yang paling dekat waktunya ke yang paling jauh
+                            filteredAgendaList.sort(
+                              (a, b) => a.datetime.compareTo(b.datetime),
+                            );
+
                             return Column(
-                              children: agendaList.map((item) {
+                              children: filteredAgendaList.map((item) {
                                 return Padding(
                                   padding: const EdgeInsets.symmetric(
                                     vertical: 8.0,

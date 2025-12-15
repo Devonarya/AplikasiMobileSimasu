@@ -4,7 +4,7 @@ import 'package:simasu/pages/kalender_page.dart';
 import 'package:simasu/pages/profile_page.dart';
 import 'package:simasu/pages/ruangan_page.dart';
 
-import 'package:simasu/models/inventory_item.dart';
+import 'package:simasu/models/inventory_model.dart';
 import 'package:simasu/services/inventory_service.dart';
 import 'package:simasu/services/booking_service.dart';
 import 'package:simasu/services/session_manager.dart';

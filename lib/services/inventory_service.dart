@@ -2,7 +2,7 @@ import 'dart:convert';
 
 import 'package:http/http.dart' as http;
 
-import '../models/inventory_item.dart';
+import '../models/inventory_model.dart';
 
 class InventoryService {
   static const String baseUrl = 'https://api.indrayuda.my.id';
