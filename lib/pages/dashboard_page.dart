@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:timezone/timezone.dart' as tz;
+import 'package:timezone/data/latest_all.dart' as tz;
 
 import 'package:simasu/pages/announcement_detail_page.dart';
 import 'package:simasu/pages/kalender_page.dart';
@@ -44,11 +46,9 @@ class _HomePageState extends State<HomePage> {
   final FlutterLocalNotificationsPlugin notificationsPlugin =
       FlutterLocalNotificationsPlugin();
 
-  // Variabel untuk data API Agenda
   late Future<List<AgendaItem>> _agendaFuture;
   final AgendaService _agendaService = AgendaService();
 
-  // Variabel untuk data API Announcement
   late Future<List<AnnouncementItem>> _announcementFuture;
   final AnnouncementService _announcementService = AnnouncementService();
 
@@ -57,12 +57,10 @@ class _HomePageState extends State<HomePage> {
     super.initState();
     _initNotifications();
 
-    // Panggil API saat halaman dimuat
     _agendaFuture = _agendaService.fetchAgendas();
     _announcementFuture = _announcementService.fetchAnnouncements();
   }
 
-  // Fungsi refresh untuk menarik data ulang (Agenda & Pengumuman)
   Future<void> _refreshData() async {
     setState(() {
       _agendaFuture = _agendaService.fetchAgendas();
@@ -71,43 +69,180 @@ class _HomePageState extends State<HomePage> {
   }
 
   Future<void> _initNotifications() async {
-    const android = AndroidInitializationSettings('@mipmap/ic_launcher');
-    const settings = InitializationSettings(android: android);
+    // Initialize timezone
+    tz.initializeTimeZones();
+    // Set timezone ke Asia/Jakarta (WIB)
+    tz.setLocalLocation(tz.getLocation('Asia/Jakarta'));
 
-    await notificationsPlugin.initialize(settings);
+    const androidSettings = AndroidInitializationSettings(
+      '@mipmap/ic_launcher',
+    );
+    const initSettings = InitializationSettings(android: androidSettings);
 
+    await notificationsPlugin.initialize(
+      initSettings,
+      onDidReceiveNotificationResponse: (NotificationResponse response) {
+        debugPrint('Notification clicked: ${response.payload}');
+      },
+    );
+
+    // Request notification permission untuk Android 13+
     final androidImplementation = notificationsPlugin
         .resolvePlatformSpecificImplementation<
           AndroidFlutterLocalNotificationsPlugin
         >();
 
-    await androidImplementation?.requestNotificationsPermission();
+    final granted = await androidImplementation
+        ?.requestNotificationsPermission();
+    debugPrint('Notification permission granted: $granted');
   }
 
-  Future<void> _showNotification() async {
+  Future<void> _scheduleNotification(AgendaItem item) async {
+    try {
+      final scheduledTime = item.datetime.subtract(const Duration(minutes: 10));
+      final now = DateTime.now();
+
+      debugPrint('Current time: $now');
+      debugPrint('Event time: ${item.datetime}');
+      debugPrint('Notification scheduled for: $scheduledTime');
+
+      if (scheduledTime.isBefore(now)) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                'Waktu acara terlalu dekat (kurang dari 10 menit). Notifikasi akan muncul sekarang sebagai contoh.',
+              ),
+              duration: Duration(seconds: 3),
+              backgroundColor: Colors.orange,
+            ),
+          );
+        }
+        // Untuk testing tampilkan notifikasi sekarang
+        await _showImmediateNotification(item);
+        return;
+      }
+
+      final tzScheduledTime = tz.TZDateTime.from(scheduledTime, tz.local);
+
+      debugPrint('TZ Scheduled time: $tzScheduledTime');
+      debugPrint('TZ Current time: ${tz.TZDateTime.now(tz.local)}');
+
+      const androidDetails = AndroidNotificationDetails(
+        'masjid_channel',
+        'Masjid Syamsul Ulum',
+        channelDescription: 'Notifikasi kegiatan masjid',
+        importance: Importance.max,
+        priority: Priority.high,
+        showWhen: true,
+        icon: '@mipmap/ic_launcher',
+        enableVibration: true,
+        playSound: true,
+      );
+      const details = NotificationDetails(android: androidDetails);
+
+      final notificationId = '${item.title}${item.datetime}'.hashCode.abs();
+
+      await notificationsPlugin.zonedSchedule(
+        notificationId,
+        'Pengingat: ${item.title}',
+        'Acara akan dimulai dalam 10 menit di ${item.tag}',
+        tzScheduledTime,
+        details,
+        androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+        payload: item.title,
+      );
+
+      final pendingNotifications = await notificationsPlugin
+          .pendingNotificationRequests();
+      debugPrint('Total pending notifications: ${pendingNotifications.length}');
+      for (var notif in pendingNotifications) {
+        debugPrint('Pending: ID=${notif.id}, Title=${notif.title}');
+      }
+
+      if (mounted) {
+        final difference = scheduledTime.difference(now);
+        final hours = difference.inHours;
+        final minutes = difference.inMinutes % 60;
+
+        String timeMessage = '';
+        if (hours > 0) {
+          timeMessage = '$hours jam $minutes menit';
+        } else {
+          timeMessage = '$minutes menit';
+        }
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Pengingat diatur untuk $timeMessage lagi\n(10 menit sebelum acara)',
+            ),
+            duration: const Duration(seconds: 3),
+            backgroundColor: Colors.green,
+            action: SnackBarAction(
+              label: 'Test Sekarang',
+              textColor: Colors.white,
+              onPressed: () => _showImmediateNotification(item),
+            ),
+          ),
+        );
+      }
+    } catch (e, stackTrace) {
+      debugPrint('Error scheduling notification: $e');
+      debugPrint('Stack trace: $stackTrace');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Gagal mengatur pengingat: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  //fungsi test notif
+  Future<void> _showImmediateNotification(AgendaItem item) async {
     const androidDetails = AndroidNotificationDetails(
       'masjid_channel',
       'Masjid Syamsul Ulum',
       channelDescription: 'Notifikasi kegiatan masjid',
-      importance: Importance.high,
+      importance: Importance.max,
       priority: Priority.high,
+      showWhen: true,
+      icon: '@mipmap/ic_launcher',
+      enableVibration: true,
+      playSound: true,
     );
     const details = NotificationDetails(android: androidDetails);
+
+    final notificationId = DateTime.now().millisecondsSinceEpoch % 100000;
+
     await notificationsPlugin.show(
-      0,
-      'Pengingat Kegiatan',
-      'Jangan lupa hadir di acara malam ini!',
+      notificationId,
+      'Pengingat: ${item.title}',
+      'Acara akan dimulai segera di ${item.tag}',
       details,
+      payload: item.title,
     );
+
+    debugPrint('Immediate notification sent with ID: $notificationId');
   }
 
-  List<AgendaItem> _filterRecentAgendas(List<AgendaItem> agendas) {
-    final now = DateTime.now();
+  Future<void> _cancelNotification(AgendaItem item) async {
+    final notificationId = '${item.title}${item.datetime}'.hashCode.abs();
+    await notificationsPlugin.cancel(notificationId);
 
-    return agendas.where((agenda) {
-      final difference = agenda.datetime.difference(now);
-      return difference.inMinutes >= -60;
-    }).toList();
+    debugPrint('Cancelled notification ID: $notificationId');
+
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Pengingat dibatalkan'),
+          duration: Duration(seconds: 2),
+        ),
+      );
+    }
   }
 
   @override
@@ -124,9 +259,18 @@ class _HomePageState extends State<HomePage> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // Small header "Home"
-              const Text(
-                'Home',
-                style: TextStyle(color: Colors.black87, fontSize: 14),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text(
+                    'Beranda',
+                    style: TextStyle(
+                      color: Colors.black87,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
               ),
               const SizedBox(height: 12),
 
@@ -346,22 +490,22 @@ class _HomePageState extends State<HomePage> {
                                             TextButton(
                                               onPressed: () {
                                                 Navigator.pop(ctx);
-                                                _showNotification();
-                                                ScaffoldMessenger.of(
-                                                  context,
-                                                ).showSnackBar(
-                                                  const SnackBar(
-                                                    content: Text(
-                                                      'Peringatan sudah diaktifkan',
-                                                    ),
-                                                    duration: Duration(
-                                                      seconds: 2,
-                                                    ),
-                                                  ),
-                                                );
+                                                _scheduleNotification(item);
                                               },
                                               child: const Text(
                                                 'Ingatkan Saya',
+                                              ),
+                                            ),
+                                            TextButton(
+                                              onPressed: () {
+                                                Navigator.pop(ctx);
+                                                _cancelNotification(item);
+                                              },
+                                              child: const Text(
+                                                'Batalkan Pengingat',
+                                                style: TextStyle(
+                                                  color: Colors.red,
+                                                ),
                                               ),
                                             ),
                                             TextButton(
