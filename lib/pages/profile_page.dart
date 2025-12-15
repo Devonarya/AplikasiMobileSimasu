@@ -5,6 +5,10 @@ import '../main.dart'; //
 import 'inventaris_page.dart';
 import 'ruangan_page.dart';
 
+import '../models/booking_model.dart';
+import '../services/booking_service.dart';
+import '../services/session_manager.dart';
+
 class MasjidApp extends StatelessWidget {
   const MasjidApp({super.key});
 
@@ -32,6 +36,87 @@ class _ProfilePageState extends State<ProfilePage> {
   String _userEmail = 'sheilaa@gmail.com';
   String _profileImagePath = 'assets/images/profile_default.png';
 
+  final BookingService _bookingService = BookingService();
+  late Future<List<BookingItem>> _bookingsFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    _bookingsFuture = _bookingService.fetchBookings();
+    _loadUserFromSession();
+  }
+
+  Future<void> _loadUserFromSession() async {
+    final name = await SessionManager.getUserName();
+    final email = await SessionManager.getUserEmail();
+    if (!mounted) return;
+    setState(() {
+      if (name != null && name.isNotEmpty) _userName = name;
+      if (email != null && email.isNotEmpty) _userEmail = email;
+    });
+  }
+
+  void _refreshBookings() {
+    setState(() {
+      _bookingsFuture = _bookingService.fetchBookings();
+    });
+  }
+
+  String _categoryLabel(String type) {
+    return type == 'room' ? 'PEMINJAMAN RUANGAN' : 'PEMINJAMAN BARANG';
+  }
+
+  String _statusLabel(String status) {
+    switch (status) {
+      case 'pending':
+        return 'Menunggu';
+      case 'approved':
+        return 'Disetujui';
+      case 'rejected':
+        return 'Ditolak';
+      case 'completed':
+        return 'Selesai';
+      default:
+        return status;
+    }
+  }
+
+  Color _statusBg(String status) {
+    switch (status) {
+      case 'approved':
+        return const Color(0xFFCDE7D6);
+      case 'completed':
+        return const Color(0xFFB9E0C7);
+      case 'rejected':
+        return const Color(0xFFFFCDD2);
+      case 'pending':
+      default:
+        return const Color(0xFFFFE0B2);
+    }
+  }
+
+  Color _statusFg(String status) {
+    switch (status) {
+      case 'approved':
+      case 'completed':
+        return const Color(0xFF2F6E3E);
+      case 'rejected':
+        return const Color(0xFFC62828);
+      case 'pending':
+      default:
+        return const Color(0xFFEF6C00);
+    }
+  }
+
+  Future<void> _handleLogout() async {
+    await SessionManager.clear();
+    if (!mounted) return;
+    Navigator.of(context).pushAndRemoveUntil(
+      MaterialPageRoute(builder: (_) => const AuthPage()),
+      (route) => false,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -48,7 +133,6 @@ class _ProfilePageState extends State<ProfilePage> {
                 name: _userName,
                 email: _userEmail,
                 imagePath: _profileImagePath,
-                onTap: _showEditProfileSheet,
               ),
               const SizedBox(height: 12),
               const Text(
@@ -65,37 +149,106 @@ class _ProfilePageState extends State<ProfilePage> {
                 ),
               ),
               const SizedBox(height: 12),
-              const _LoanHistoryCard(
-                category: 'PEMINJAMAN BARANG',
-                title: 'Speaker Portable JBL',
-                start: 'Mulai: Minggu, 1 Desember 2024 07.00',
-                end: 'Selesai: Minggu, 1 Desember 2024 17.00',
-                note: 'Catatan: Digunakan untuk tabligh akbar remaja.',
-                statusLabel: 'Selesai',
-                statusColor: Color(0xFFB9E0C7),
-                statusTextColor: Color(0xFF2F6E3E),
+              FutureBuilder<List<BookingItem>>(
+                future: _bookingsFuture,
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 24),
+                      child: Center(child: CircularProgressIndicator()),
+                    );
+                  }
+
+                  if (snapshot.hasError) {
+                    return Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(16),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.05),
+                            blurRadius: 10,
+                            offset: const Offset(0, 4),
+                          ),
+                        ],
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            'Gagal memuat riwayat peminjaman',
+                            style: TextStyle(fontWeight: FontWeight.w800),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            snapshot.error
+                                .toString()
+                                .replaceFirst('Exception: ', ''),
+                            style: const TextStyle(color: Colors.red),
+                          ),
+                          const SizedBox(height: 8),
+                          Align(
+                            alignment: Alignment.centerRight,
+                            child: TextButton(
+                              onPressed: _refreshBookings,
+                              child: const Text('Coba lagi'),
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  }
+
+                  final bookings = snapshot.data ?? <BookingItem>[];
+                  if (bookings.isEmpty) {
+                    return Container(
+                      padding: const EdgeInsets.all(20),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(16),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.05),
+                            blurRadius: 10,
+                            offset: const Offset(0, 4),
+                          ),
+                        ],
+                      ),
+                      child: const Center(
+                        child: Text(
+                          'Belum ada riwayat peminjaman.',
+                          style: TextStyle(color: Colors.black54),
+                        ),
+                      ),
+                    );
+                  }
+
+                  return Column(
+                    children: [
+                      for (final b in bookings) ...[
+                        _LoanHistoryCard(
+                          category: _categoryLabel(b.type),
+                          title: b.itemName,
+                          start: 'Mulai: ${b.startLabel}',
+                          end: 'Selesai: ${b.endLabel}',
+                          note: 'Catatan: ${b.notes == null || b.notes!.trim().isEmpty ? '-' : b.notes!}',
+                          statusLabel: _statusLabel(b.status),
+                          statusColor: _statusBg(b.status),
+                          statusTextColor: _statusFg(b.status),
+                        ),
+                        const SizedBox(height: 12),
+                      ],
+                    ],
+                  );
+                },
               ),
               const SizedBox(height: 12),
-              const _LoanHistoryCard(
-                category: 'PEMINJAMAN RUANGAN',
-                title: 'Aula Utama',
-                start: 'Mulai: Minggu, 15 Desember 2024 18.30',
-                end: 'Selesai: Minggu, 15 Desember 2024 21.00',
-                note: 'Catatan: Acara Maulid Nabi bersama warga.',
-                statusLabel: 'Disetujui',
-                statusColor: Color(0xFFCDE7D6),
-                statusTextColor: Color(0xFF2F6E3E),
-              ),
               const SizedBox(height: 24),
 
               _LogoutButton(
                 onTap: () {
-                  Navigator.of(context).pushAndRemoveUntil(
-                    MaterialPageRoute(
-                      builder: (context) => const AuthPage(),
-                    ),
-                    (route) => false,
-                  );
+                  _handleLogout();
                 },
               ),
 
@@ -189,119 +342,6 @@ class _ProfilePageState extends State<ProfilePage> {
       ),
     );
   }
-
-  void _showEditProfileSheet() {
-    final nameController = TextEditingController(text: _userName);
-    final emailController = TextEditingController(text: _userEmail);
-
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
-      builder: (context) {
-        return Padding(
-          padding: EdgeInsets.only(
-            left: 16,
-            right: 16,
-            top: 16,
-            bottom: MediaQuery.of(context).viewInsets.bottom + 16,
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Center(
-                child: Container(
-                  width: 40,
-                  height: 4,
-                  margin: const EdgeInsets.only(bottom: 16),
-                  decoration: BoxDecoration(
-                    color: Colors.grey[400],
-                    borderRadius: BorderRadius.circular(999),
-                  ),
-                ),
-              ),
-              const Text(
-                'Edit Profil',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w800,
-                ),
-              ),
-              const SizedBox(height: 16),
-              Row(
-                children: [
-                  CircleAvatar(
-                    radius: 28,
-                    backgroundImage: AssetImage(_profileImagePath),
-                  ),
-                  const SizedBox(width: 12),
-                  TextButton.icon(
-                    onPressed: () {
-                      setState(() {
-                        _profileImagePath =
-                            _profileImagePath == 'assets/images/profile_default.png'
-                                ? 'assets/images/profile_alt.png'
-                                : 'assets/images/profile_default.png';
-                      });
-                    },
-                    icon: const Icon(Icons.photo_camera_outlined),
-                    label: const Text('Ganti foto'),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16),
-              TextField(
-                controller: nameController,
-                decoration: const InputDecoration(
-                  labelText: 'Nama',
-                  border: OutlineInputBorder(),
-                ),
-              ),
-              const SizedBox(height: 12),
-              TextField(
-                controller: emailController,
-                decoration: const InputDecoration(
-                  labelText: 'Email',
-                  border: OutlineInputBorder(),
-                ),
-              ),
-              const SizedBox(height: 16),
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF1E8A3E),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(24),
-                    ),
-                    padding: const EdgeInsets.symmetric(vertical: 12),
-                  ),
-                  onPressed: () {
-                    setState(() {
-                      _userName = nameController.text.trim();
-                      _userEmail = emailController.text.trim();
-                    });
-                    Navigator.pop(context);
-                  },
-                  child: const Text(
-                    'Simpan',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 8),
-            ],
-          ),
-        );
-      },
-    );
-  }
 }
 
 class _HeaderProfile extends StatelessWidget {
@@ -389,66 +429,56 @@ class _UserCard extends StatelessWidget {
   final String name;
   final String email;
   final String imagePath;
-  final VoidCallback? onTap;
 
   const _UserCard({
     required this.name,
     required this.email,
     required this.imagePath,
-    this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(22),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.06),
-              blurRadius: 16,
-              offset: const Offset(0, 8),
-            ),
-          ],
-        ),
-        child: Row(
-          children: [
-            CircleAvatar(
-              radius: 27,
-              backgroundColor: const Color(0xFFEAF4ED),
-              backgroundImage: AssetImage(imagePath),
-            ),
-            const SizedBox(width: 14),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    name,
-                    style: const TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w800,
-                    ),
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(22),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.06),
+            blurRadius: 16,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          CircleAvatar(
+            radius: 27,
+            backgroundColor: const Color(0xFFEAF4ED),
+            backgroundImage: AssetImage(imagePath),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  name,
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w800,
                   ),
-                  const SizedBox(height: 2),
-                  Text(
-                    email,
-                    style: const TextStyle(color: Colors.black54),
-                  ),
-                ],
-              ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  email,
+                  style: const TextStyle(color: Colors.black54),
+                ),
+              ],
             ),
-            const Icon(
-              Icons.edit_outlined,
-              color: Colors.black45,
-              size: 20,
-            ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
