@@ -3,7 +3,7 @@ import 'package:http/http.dart' as http;
 import '../models/announcement_model.dart';
 
 class AnnouncementService {
-  static const String baseUrl = 'https://api.indrayuda.my.id'; // Sesuaikan URL
+  static const String baseUrl = 'https://api.indrayuda.my.id';
 
   Future<List<AnnouncementItem>> fetchAnnouncements() async {
     final res = await http.get(Uri.parse('$baseUrl/api/announcements'));
