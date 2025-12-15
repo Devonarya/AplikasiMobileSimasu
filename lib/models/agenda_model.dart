@@ -26,9 +26,8 @@ class AgendaItem {
     );
   }
 
-  // Helper untuk format tanggal sesuai request: "Ahad, 12 Januari 2025"
+  // Helper untuk format
   String get formattedDate {
-    // Membutuhkan: import 'package:intl/date_symbol_data_local.dart'; di main
     try {
       return DateFormat('EEEE, d MMMM yyyy', 'id_ID').format(datetime);
     } catch (e) {
@@ -36,7 +35,7 @@ class AgendaItem {
     }
   }
 
-  // Helper untuk jam: "19.30 WIB"
+  // Helper untuk jam
   String get formattedTime {
     try {
       return '${DateFormat('HH.mm').format(datetime)} WIB';
