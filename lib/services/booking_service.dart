@@ -3,7 +3,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
 
-import '../models/booking_item.dart';
+import '../models/booking_model.dart';
 import 'session_manager.dart';
 
 class BookingService {

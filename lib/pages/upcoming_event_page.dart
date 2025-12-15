@@ -78,12 +78,23 @@ class _UpcomingEventPageState extends State<UpcomingEventPage> {
               );
             }
 
-            // 3. Data Kosong
+            // 3. Data Kosong & Filter
             final list = snapshot.data ?? [];
-            if (list.isEmpty) {
+
+            // Filter agenda: belum lewat atau sudah lewat maksimal 1 jam
+            final filteredList = list.where((item) {
+              final difference = item.datetime.difference(DateTime.now());
+              return difference.inMinutes >=
+                  -60; // agenda belum lewat atau maksimal 1 jam lewat
+            }).toList();
+
+            // Optional: urutkan dari yang paling dekat waktunya ke yang paling jauh
+            filteredList.sort((a, b) => a.datetime.compareTo(b.datetime));
+
+            if (filteredList.isEmpty) {
               return const Center(
                 child: Text(
-                  'Belum ada agenda mendatang.',
+                  'Belum ada agenda mendekati atau dalam 1 jam terakhir.',
                   style: TextStyle(color: Colors.grey),
                 ),
               );
@@ -92,10 +103,10 @@ class _UpcomingEventPageState extends State<UpcomingEventPage> {
             // 4. Ada Data
             return ListView.builder(
               physics: const AlwaysScrollableScrollPhysics(),
-              itemCount: list.length,
+              itemCount: filteredList.length,
               padding: const EdgeInsets.all(16),
               itemBuilder: (context, index) {
-                final item = list[index];
+                final item = filteredList[index];
                 return Container(
                   margin: const EdgeInsets.only(bottom: 14),
                   padding: const EdgeInsets.all(14),

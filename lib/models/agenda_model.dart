@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 class AgendaItem {
@@ -16,13 +17,23 @@ class AgendaItem {
   });
 
   factory AgendaItem.fromJson(Map<String, dynamic> json) {
+    debugPrint('AGENDA RAW JSON: $json');
+
+    final rawDate = json['event_date'];
+
+    DateTime parsedDate;
+    try {
+      parsedDate = DateTime.parse(rawDate);
+    } catch (e) {
+      parsedDate = DateTime.now();
+    }
+
     return AgendaItem(
-      id: json['id'] is int ? json['id'] : 0,
-      title: (json['title'] ?? '').toString(),
-      subtitle: (json['subtitle'] ?? '').toString(),
-      datetime:
-          DateTime.tryParse(json['date_iso'].toString()) ?? DateTime.now(),
-      tag: (json['location'] ?? '').toString(),
+      id: json['id'] ?? 0,
+      title: json['title'] ?? '',
+      subtitle: json['subtitle'] ?? '',
+      datetime: parsedDate.toLocal(),
+      tag: json['location'] ?? '',
     );
   }
 
