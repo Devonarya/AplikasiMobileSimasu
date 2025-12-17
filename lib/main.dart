@@ -1,8 +1,15 @@
 import 'package:flutter/material.dart';
 import 'pages/dashboard_page.dart';
+import 'package:intl/date_symbol_data_local.dart';
+import 'services/auth_service.dart';
+import 'services/session_manager.dart';
 
 const kLogoPath = 'assets/images/simasu_mark.png';
-void main() => runApp(const SimasuApp());
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await initializeDateFormatting('id_ID', null); // Init locale
+  runApp(const SimasuApp());
+}
 
 class SimasuApp extends StatelessWidget {
   const SimasuApp({super.key});
@@ -59,6 +66,24 @@ class AuthPage extends StatefulWidget {
 
 class _AuthPageState extends State<AuthPage> {
   bool isRegister = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _redirectIfHasToken();
+  }
+
+  Future<void> _redirectIfHasToken() async {
+    final token = await SessionManager.getToken();
+    if (token != null && token.isNotEmpty) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        Navigator.of(
+          context,
+        ).pushReplacement(MaterialPageRoute(builder: (_) => const MasjidApp()));
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -193,6 +218,8 @@ class _AuthCard extends StatefulWidget {
 }
 
 class _AuthCardState extends State<_AuthCard> {
+  final _name = TextEditingController();
+  final _phone = TextEditingController();
   final _email = TextEditingController();
   final _pass = TextEditingController();
   final _confirm = TextEditingController();
@@ -200,11 +227,15 @@ class _AuthCardState extends State<_AuthCard> {
   final _emailFocus = FocusNode();
   final _passFocus = FocusNode();
 
-  static const _kStaticEmail = 'admin@gmail.com';
-  static const _kStaticPass = 'admin123';
+  bool _isLoading = false;
+
+  bool _obscurePass = true;
+  bool _obscureConfirm = true;
 
   @override
   void dispose() {
+    _name.dispose();
+    _phone.dispose();
     _email.dispose();
     _pass.dispose();
     _confirm.dispose();
@@ -241,47 +272,114 @@ class _AuthCardState extends State<_AuthCard> {
             onTapRight: () => widget.onToggle(true),
           ),
           const SizedBox(height: 18),
+
+          if (isRegister) ...[
+            Text('Nama', style: _labelStyle),
+            const SizedBox(height: 8),
+            TextField(
+              controller: _name,
+              textInputAction: TextInputAction.next,
+              decoration: const InputDecoration(
+                hintText: 'Nama lengkap',
+                prefixIcon: Icon(Icons.person_outline),
+              ),
+            ),
+            const SizedBox(height: 16),
+            Text('Nomor HP', style: _labelStyle),
+            const SizedBox(height: 8),
+            TextField(
+              controller: _phone,
+              keyboardType: TextInputType.phone,
+              textInputAction: TextInputAction.next,
+              decoration: const InputDecoration(
+                hintText: '08xxxxxxxxxx',
+                prefixIcon: Icon(Icons.phone_outlined),
+              ),
+            ),
+            const SizedBox(height: 16),
+          ],
+
           Text('Email', style: _labelStyle),
           const SizedBox(height: 8),
           TextField(
             controller: _email,
             focusNode: _emailFocus,
             keyboardType: TextInputType.emailAddress,
+            textInputAction: TextInputAction.next,
             decoration: const InputDecoration(
               hintText: 'nama@domain.com',
               prefixIcon: Icon(Icons.email_outlined),
             ),
           ),
           const SizedBox(height: 16),
+
           Text('Kata Sandi', style: _labelStyle),
           const SizedBox(height: 8),
+
           TextField(
             controller: _pass,
             focusNode: _passFocus,
-            obscureText: true,
-            decoration: const InputDecoration(
+            obscureText: _obscurePass,
+            decoration: InputDecoration(
               hintText: 'Minimal 6 karakter',
-              prefixIcon: Icon(Icons.lock_outline),
+              prefixIcon: const Icon(Icons.lock_outline),
+              suffixIcon: IconButton(
+                icon: Icon(
+                  _obscurePass
+                      ? Icons.visibility_outlined
+                      : Icons.visibility_off_outlined,
+                  color: Colors.grey,
+                ),
+                onPressed: () {
+                  setState(() {
+                    _obscurePass = !_obscurePass;
+                  });
+                },
+              ),
             ),
           ),
+
           if (isRegister) ...[
             const SizedBox(height: 16),
             Text('Konfirmasi Kata Sandi', style: _labelStyle),
             const SizedBox(height: 8),
+
             TextField(
               controller: _confirm,
-              obscureText: true,
-              decoration: const InputDecoration(
+              obscureText: _obscureConfirm,
+              decoration: InputDecoration(
                 hintText: 'Ulangi kata sandi',
-                prefixIcon: Icon(Icons.lock_reset_outlined),
+                prefixIcon: const Icon(Icons.lock_reset_outlined),
+                suffixIcon: IconButton(
+                  icon: Icon(
+                    _obscureConfirm
+                        ? Icons.visibility_outlined
+                        : Icons.visibility_off_outlined,
+                    color: Colors.grey,
+                  ),
+                  onPressed: () {
+                    setState(() {
+                      _obscureConfirm = !_obscureConfirm;
+                    });
+                  },
+                ),
               ),
             ),
           ],
+
           const SizedBox(height: 20),
           SizedBox(
             height: 48,
             child: ElevatedButton(
-              onPressed: () => isRegister ? _onRegister() : _onLogin(),
+              onPressed: _isLoading
+                  ? null
+                  : () async {
+                      if (isRegister) {
+                        await _onRegister();
+                      } else {
+                        await _onLogin();
+                      }
+                    },
               style: ElevatedButton.styleFrom(
                 backgroundColor: _Palette.primary,
                 foregroundColor: Colors.white,
@@ -291,13 +389,22 @@ class _AuthCardState extends State<_AuthCard> {
                 elevation: 4,
                 shadowColor: _Palette.primaryDark.withOpacity(0.4),
               ),
-              child: Text(
-                isRegister ? 'Daftar' : 'Masuk',
-                style: const TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
+              child: _isLoading
+                  ? const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                      ),
+                    )
+                  : Text(
+                      isRegister ? 'Daftar' : 'Masuk',
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
             ),
           ),
           const SizedBox(height: 14),
@@ -338,36 +445,110 @@ class _AuthCardState extends State<_AuthCard> {
     );
   }
 
-  void _onLogin() {
+  Future<void> _onLogin() async {
     final email = _email.text.trim();
     final pass = _pass.text;
 
-    if (email == _kStaticEmail && pass == _kStaticPass) {
-      Navigator.of(
-        context,
-      ).pushReplacement(MaterialPageRoute(builder: (_) => const MasjidApp()));
-    } else {
-      _pass.clear();
-      _emailFocus.requestFocus();
-
+    if (email.isEmpty || pass.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Email atau kata sandi salah.'),
+          content: Text('Email dan kata sandi wajib diisi.'),
           behavior: SnackBarBehavior.floating,
           duration: Duration(seconds: 2),
         ),
       );
+      return;
+    }
+
+    setState(() => _isLoading = true);
+    try {
+      await AuthService().login(email: email, password: pass);
+
+      if (!mounted) return;
+      Navigator.of(
+        context,
+      ).pushReplacement(MaterialPageRoute(builder: (_) => const MasjidApp()));
+    } catch (e) {
+      _pass.clear();
+      _emailFocus.requestFocus();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(e.toString().replaceFirst('Exception: ', '')),
+          behavior: SnackBarBehavior.floating,
+          duration: const Duration(seconds: 3),
+        ),
+      );
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
-  void _onRegister() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Masih belum nyimpen data apa apa.'),
-        behavior: SnackBarBehavior.floating,
-        duration: Duration(seconds: 2),
-      ),
-    );
+  Future<void> _onRegister() async {
+    final name = _name.text.trim();
+    final phone = _phone.text.trim();
+    final email = _email.text.trim();
+    final pass = _pass.text;
+    final confirm = _confirm.text;
+
+    if (name.isEmpty || email.isEmpty || pass.isEmpty || confirm.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Mohon lengkapi semua data pendaftaran.'),
+          behavior: SnackBarBehavior.floating,
+          duration: Duration(seconds: 2),
+        ),
+      );
+      return;
+    }
+
+    if (pass.length < 6) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Kata sandi minimal 6 karakter.'),
+          behavior: SnackBarBehavior.floating,
+          duration: Duration(seconds: 2),
+        ),
+      );
+      return;
+    }
+
+    if (pass != confirm) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Konfirmasi kata sandi tidak sama.'),
+          behavior: SnackBarBehavior.floating,
+          duration: Duration(seconds: 2),
+        ),
+      );
+      return;
+    }
+
+    setState(() => _isLoading = true);
+    try {
+      await AuthService().register(
+        email: email,
+        password: pass,
+        name: name,
+        phone: phone,
+      );
+
+      await AuthService().login(email: email, password: pass);
+
+      if (!mounted) return;
+      Navigator.of(
+        context,
+      ).pushReplacement(MaterialPageRoute(builder: (_) => const MasjidApp()));
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(e.toString().replaceFirst('Exception: ', '')),
+          behavior: SnackBarBehavior.floating,
+          duration: const Duration(seconds: 3),
+        ),
+      );
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
   }
 
   TextStyle get _labelStyle =>

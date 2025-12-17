@@ -1,8 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:simasu/pages/dashboard_page.dart';
 import 'package:simasu/pages/kalender_page.dart';
+import '../main.dart'; // 
 import 'inventaris_page.dart';
 import 'ruangan_page.dart';
+
+import '../models/booking_model.dart';
+import '../services/booking_service.dart';
+import '../services/session_manager.dart';
 
 class MasjidApp extends StatelessWidget {
   const MasjidApp({super.key});
@@ -27,6 +32,91 @@ class ProfilePage extends StatefulWidget {
 class _ProfilePageState extends State<ProfilePage> {
   int _selectedIndex = 4;
 
+  String _userName = 'Sheila';
+  String _userEmail = 'sheilaa@gmail.com';
+  String _profileImagePath = 'assets/images/profile_default.png';
+
+  final BookingService _bookingService = BookingService();
+  late Future<List<BookingItem>> _bookingsFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    _bookingsFuture = _bookingService.fetchBookings();
+    _loadUserFromSession();
+  }
+
+  Future<void> _loadUserFromSession() async {
+    final name = await SessionManager.getUserName();
+    final email = await SessionManager.getUserEmail();
+    if (!mounted) return;
+    setState(() {
+      if (name != null && name.isNotEmpty) _userName = name;
+      if (email != null && email.isNotEmpty) _userEmail = email;
+    });
+  }
+
+  void _refreshBookings() {
+    setState(() {
+      _bookingsFuture = _bookingService.fetchBookings();
+    });
+  }
+
+  String _categoryLabel(String type) {
+    return type == 'room' ? 'PEMINJAMAN RUANGAN' : 'PEMINJAMAN BARANG';
+  }
+
+  String _statusLabel(String status) {
+    switch (status) {
+      case 'pending':
+        return 'Menunggu';
+      case 'approved':
+        return 'Disetujui';
+      case 'rejected':
+        return 'Ditolak';
+      case 'completed':
+        return 'Selesai';
+      default:
+        return status;
+    }
+  }
+
+  Color _statusBg(String status) {
+    switch (status) {
+      case 'approved':
+        return const Color(0xFFCDE7D6);
+      case 'completed':
+        return const Color(0xFFB9E0C7);
+      case 'rejected':
+        return const Color(0xFFFFCDD2);
+      case 'pending':
+      default:
+        return const Color(0xFFFFE0B2);
+    }
+  }
+
+  Color _statusFg(String status) {
+    switch (status) {
+      case 'approved':
+      case 'completed':
+        return const Color(0xFF2F6E3E);
+      case 'rejected':
+        return const Color(0xFFC62828);
+      case 'pending':
+      default:
+        return const Color(0xFFEF6C00);
+    }
+  }
+
+  Future<void> _handleLogout() async {
+    await SessionManager.clear();
+    if (!mounted) return;
+    Navigator.of(context).pushAndRemoveUntil(
+      MaterialPageRoute(builder: (_) => const AuthPage()),
+      (route) => false,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -39,14 +129,17 @@ class _ProfilePageState extends State<ProfilePage> {
             children: [
               _HeaderProfile(),
               const SizedBox(height: 16),
-              _UserCard(name: 'A', email: 'a@a'),
+              _UserCard(
+                name: _userName,
+                email: _userEmail,
+                imagePath: _profileImagePath,
+              ),
               const SizedBox(height: 12),
-              Text(
-                'Riwayat peminjaman Anda tercatat rapi. Pantau status pengajuan kapan pun.',
+              const Text(
+                'Pantau status pengajuan kapan pun.',
                 style: TextStyle(color: Colors.black54),
               ),
               const SizedBox(height: 20),
-
               const Text(
                 'Riwayat Peminjaman',
                 style: TextStyle(
@@ -56,37 +149,114 @@ class _ProfilePageState extends State<ProfilePage> {
                 ),
               ),
               const SizedBox(height: 12),
+              FutureBuilder<List<BookingItem>>(
+                future: _bookingsFuture,
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 24),
+                      child: Center(child: CircularProgressIndicator()),
+                    );
+                  }
 
-              _LoanHistoryCard(
-                category: 'PEMINJAMAN BARANG',
-                title: 'Speaker Portable JBL',
-                start: 'Mulai: Minggu, 1 Desember 2024 07.00',
-                end: 'Selesai: Minggu, 1 Desember 2024 17.00',
-                note: 'Catatan: Digunakan untuk tabligh akbar remaja.',
-                statusLabel: 'Selesai',
-                statusColor: const Color(0xFFB9E0C7),
-                statusTextColor: const Color(0xFF2F6E3E),
+                  if (snapshot.hasError) {
+                    return Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(16),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.05),
+                            blurRadius: 10,
+                            offset: const Offset(0, 4),
+                          ),
+                        ],
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            'Gagal memuat riwayat peminjaman',
+                            style: TextStyle(fontWeight: FontWeight.w800),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            snapshot.error
+                                .toString()
+                                .replaceFirst('Exception: ', ''),
+                            style: const TextStyle(color: Colors.red),
+                          ),
+                          const SizedBox(height: 8),
+                          Align(
+                            alignment: Alignment.centerRight,
+                            child: TextButton(
+                              onPressed: _refreshBookings,
+                              child: const Text('Coba lagi'),
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  }
+
+                  final bookings = snapshot.data ?? <BookingItem>[];
+                  if (bookings.isEmpty) {
+                    return Container(
+                      padding: const EdgeInsets.all(20),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(16),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.05),
+                            blurRadius: 10,
+                            offset: const Offset(0, 4),
+                          ),
+                        ],
+                      ),
+                      child: const Center(
+                        child: Text(
+                          'Belum ada riwayat peminjaman.',
+                          style: TextStyle(color: Colors.black54),
+                        ),
+                      ),
+                    );
+                  }
+
+                  return Column(
+                    children: [
+                      for (final b in bookings) ...[
+                        _LoanHistoryCard(
+                          category: _categoryLabel(b.type),
+                          title: b.itemName,
+                          start: 'Mulai: ${b.startLabel}',
+                          end: 'Selesai: ${b.endLabel}',
+                          note: 'Catatan: ${b.notes == null || b.notes!.trim().isEmpty ? '-' : b.notes!}',
+                          statusLabel: _statusLabel(b.status),
+                          statusColor: _statusBg(b.status),
+                          statusTextColor: _statusFg(b.status),
+                        ),
+                        const SizedBox(height: 12),
+                      ],
+                    ],
+                  );
+                },
               ),
               const SizedBox(height: 12),
-              _LoanHistoryCard(
-                category: 'PEMINJAMAN RUANGAN',
-                title: 'Aula Utama',
-                start: 'Mulai: Minggu, 15 Desember 2024 18.30',
-                end: 'Selesai: Minggu, 15 Desember 2024 21.00',
-                note: 'Catatan: Acara Maulid Nabi bersama warga.',
-                statusLabel: 'Disetujui',
-                statusColor: const Color(0xFFCDE7D6),
-                statusTextColor: const Color(0xFF2F6E3E),
-              ),
               const SizedBox(height: 24),
 
-              _LogoutButton(onTap: () {}),
+              _LogoutButton(
+                onTap: () {
+                  _handleLogout();
+                },
+              ),
+
               const SizedBox(height: 100),
             ],
           ),
         ),
       ),
-
       bottomNavigationBar: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12),
         child: Container(
@@ -220,7 +390,7 @@ class _HeaderProfile extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 6),
-                Text(
+                const Text(
                   'Lihat riwayat peminjaman dan kelola akun Anda.',
                   style: TextStyle(
                     fontSize: 13,
@@ -231,7 +401,6 @@ class _HeaderProfile extends StatelessWidget {
               ],
             ),
           ),
-
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
@@ -259,7 +428,13 @@ class _HeaderProfile extends StatelessWidget {
 class _UserCard extends StatelessWidget {
   final String name;
   final String email;
-  const _UserCard({required this.name, required this.email});
+  final String imagePath;
+
+  const _UserCard({
+    required this.name,
+    required this.email,
+    required this.imagePath,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -278,17 +453,10 @@ class _UserCard extends StatelessWidget {
       ),
       child: Row(
         children: [
-          Container(
-            width: 54,
-            height: 54,
-            decoration: BoxDecoration(
-              color: const Color(0xFFEAF4ED),
-              borderRadius: BorderRadius.circular(16),
-            ),
-            child: const Icon(
-              Icons.verified_user_outlined,
-              color: Color(0xFF2F6E3E),
-            ),
+          CircleAvatar(
+            radius: 27,
+            backgroundColor: const Color(0xFFEAF4ED),
+            backgroundImage: AssetImage(imagePath),
           ),
           const SizedBox(width: 14),
           Expanded(
@@ -303,7 +471,10 @@ class _UserCard extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 2),
-                Text(email, style: const TextStyle(color: Colors.black54)),
+                Text(
+                  email,
+                  style: const TextStyle(color: Colors.black54),
+                ),
               ],
             ),
           ),
@@ -364,7 +535,6 @@ class _LoanHistoryCard extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 12),
-
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -395,7 +565,6 @@ class _LoanHistoryCard extends StatelessWidget {
               ],
             ),
           ),
-
           const SizedBox(width: 8),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
