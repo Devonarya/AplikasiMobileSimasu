@@ -55,18 +55,6 @@ class AnnouncementDetailPage extends StatelessWidget {
             ),
             const SizedBox(height: 18),
 
-            // COVER IMAGE (optional)
-            Container(
-              height: 180,
-              width: double.infinity,
-              decoration: BoxDecoration(
-                color: Colors.green.shade100,
-                borderRadius: BorderRadius.circular(16),
-              ),
-              child: const Icon(Icons.image, size: 80, color: Colors.white70),
-            ),
-            const SizedBox(height: 20),
-
             // FULL ARTICLE
             Text(
               subtitle,

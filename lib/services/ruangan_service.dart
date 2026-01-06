@@ -8,7 +8,7 @@ class RuanganService {
   static const String baseUrl = 'https://api.indrayuda.my.id';
 
   Future<List<RuanganItem>> fetchRuangan() async {
-    final res = await http.get(Uri.parse('$baseUrl/api/ruangan'));
+    final res = await http.get(Uri.parse('$baseUrl/api/rooms'));
 
     if (res.statusCode != 200) {
       String message = 'Gagal memuat ruangan (HTTP ${res.statusCode})';
