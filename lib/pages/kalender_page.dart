@@ -38,7 +38,7 @@ class _KalenderPageState extends State<KalenderPage> {
   List<BookingItem> allBookings = [];
   List<InventoryItem> inventoryItems = [];
   List<RuanganItem> ruanganItems = [];
-  
+
   bool isLoading = true;
   String? errorMessage;
 
@@ -79,25 +79,26 @@ class _KalenderPageState extends State<KalenderPage> {
 
   Map<String, List<String>> get reservations {
     final Map<String, List<String>> result = {};
-    
+
     for (final booking in allBookings) {
       final dateKey = DateFormat('yyyy-MM-dd').format(booking.startTime);
-      
+
       if (!result.containsKey(dateKey)) {
         result[dateKey] = [];
       }
-      
+
       final type = booking.type == 'inventory' ? 'barang' : 'ruangan';
       if (!result[dateKey]!.contains(type)) {
         result[dateKey]!.add(type);
       }
     }
-    
+
     return result;
   }
 
   List<BookingItem> _getFilteredBookings() {
-    String yearMonth = '${selectedMonth.year}-${selectedMonth.month.toString().padLeft(2, '0')}';
+    String yearMonth =
+        '${selectedMonth.year}-${selectedMonth.month.toString().padLeft(2, '0')}';
     return allBookings.where((booking) {
       final bookingMonth = DateFormat('yyyy-MM').format(booking.startTime);
       return bookingMonth == yearMonth;
@@ -142,8 +143,20 @@ class _KalenderPageState extends State<KalenderPage> {
     int quantity = 1;
     TextEditingController peminjamController = TextEditingController();
     TextEditingController notesController = TextEditingController();
-    DateTime tanggalMulai = DateTime(selectedMonth.year, selectedMonth.month, day, 8, 0);
-    DateTime tanggalSelesai = DateTime(selectedMonth.year, selectedMonth.month, day, 17, 0);
+    DateTime tanggalMulai = DateTime(
+      selectedMonth.year,
+      selectedMonth.month,
+      day,
+      8,
+      0,
+    );
+    DateTime tanggalSelesai = DateTime(
+      selectedMonth.year,
+      selectedMonth.month,
+      day,
+      17,
+      0,
+    );
     TimeOfDay jamMulai = TimeOfDay(hour: 8, minute: 0);
     TimeOfDay jamSelesai = TimeOfDay(hour: 17, minute: 0);
 
@@ -156,7 +169,9 @@ class _KalenderPageState extends State<KalenderPage> {
               : inventoryItems.where((i) => i.isAvailable).toList();
 
           return Dialog(
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+            ),
             child: SingleChildScrollView(
               child: Padding(
                 padding: const EdgeInsets.all(24),
@@ -166,11 +181,20 @@ class _KalenderPageState extends State<KalenderPage> {
                   children: [
                     const Text(
                       'Tambah Peminjaman/Sewa',
-                      style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                     const SizedBox(height: 24),
 
-                    const Text('Tipe', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
+                    const Text(
+                      'Tipe',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
                     const SizedBox(height: 8),
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 12),
@@ -183,7 +207,12 @@ class _KalenderPageState extends State<KalenderPage> {
                           isExpanded: true,
                           value: selectedType,
                           items: ['Sewa Ruangan', 'Pinjam Barang']
-                              .map((type) => DropdownMenuItem(value: type, child: Text(type)))
+                              .map(
+                                (type) => DropdownMenuItem(
+                                  value: type,
+                                  child: Text(type),
+                                ),
+                              )
                               .toList(),
                           onChanged: (value) {
                             setDialogState(() {
@@ -197,7 +226,13 @@ class _KalenderPageState extends State<KalenderPage> {
                     ),
                     const SizedBox(height: 16),
 
-                    const Text('Pilih Item/Ruangan', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
+                    const Text(
+                      'Pilih Item/Ruangan',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
                     const SizedBox(height: 8),
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 12),
@@ -217,7 +252,7 @@ class _KalenderPageState extends State<KalenderPage> {
                             final id = selectedType == 'Sewa Ruangan'
                                 ? (item as RuanganItem).id
                                 : (item as InventoryItem).id;
-                            
+
                             return DropdownMenuItem<int>(
                               value: id,
                               child: Text(name),
@@ -244,7 +279,13 @@ class _KalenderPageState extends State<KalenderPage> {
                     const SizedBox(height: 16),
 
                     if (selectedType == 'Pinjam Barang') ...[
-                      const Text('Jumlah', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
+                      const Text(
+                        'Jumlah',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
                       const SizedBox(height: 8),
                       TextField(
                         keyboardType: TextInputType.number,
@@ -254,7 +295,10 @@ class _KalenderPageState extends State<KalenderPage> {
                             borderRadius: BorderRadius.circular(8),
                             borderSide: BorderSide(color: Colors.grey.shade300),
                           ),
-                          contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 12,
+                          ),
                         ),
                         onChanged: (value) {
                           quantity = int.tryParse(value) ?? 1;
@@ -263,7 +307,13 @@ class _KalenderPageState extends State<KalenderPage> {
                       const SizedBox(height: 16),
                     ],
 
-                    const Text('Peminjam/Penyewa', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
+                    const Text(
+                      'Peminjam/Penyewa',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
                     const SizedBox(height: 8),
                     TextField(
                       controller: peminjamController,
@@ -273,12 +323,21 @@ class _KalenderPageState extends State<KalenderPage> {
                           borderRadius: BorderRadius.circular(8),
                           borderSide: BorderSide(color: Colors.grey.shade300),
                         ),
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 12,
+                        ),
                       ),
                     ),
                     const SizedBox(height: 16),
 
-                    const Text('Tanggal Mulai', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
+                    const Text(
+                      'Tanggal Mulai',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
                     const SizedBox(height: 8),
                     InkWell(
                       onTap: () async {
@@ -291,14 +350,20 @@ class _KalenderPageState extends State<KalenderPage> {
                         if (picked != null) {
                           setDialogState(() {
                             tanggalMulai = DateTime(
-                              picked.year, picked.month, picked.day,
-                              jamMulai.hour, jamMulai.minute,
+                              picked.year,
+                              picked.month,
+                              picked.day,
+                              jamMulai.hour,
+                              jamMulai.minute,
                             );
                           });
                         }
                       },
                       child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 12,
+                        ),
                         decoration: BoxDecoration(
                           border: Border.all(color: Colors.grey.shade300),
                           borderRadius: BorderRadius.circular(8),
@@ -323,14 +388,20 @@ class _KalenderPageState extends State<KalenderPage> {
                           setDialogState(() {
                             jamMulai = picked;
                             tanggalMulai = DateTime(
-                              tanggalMulai.year, tanggalMulai.month, tanggalMulai.day,
-                              picked.hour, picked.minute,
+                              tanggalMulai.year,
+                              tanggalMulai.month,
+                              tanggalMulai.day,
+                              picked.hour,
+                              picked.minute,
                             );
                           });
                         }
                       },
                       child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 12,
+                        ),
                         decoration: BoxDecoration(
                           border: Border.all(color: Colors.grey.shade300),
                           borderRadius: BorderRadius.circular(8),
@@ -338,7 +409,9 @@ class _KalenderPageState extends State<KalenderPage> {
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            Text('${jamMulai.hour.toString().padLeft(2, '0')}:${jamMulai.minute.toString().padLeft(2, '0')}'),
+                            Text(
+                              '${jamMulai.hour.toString().padLeft(2, '0')}:${jamMulai.minute.toString().padLeft(2, '0')}',
+                            ),
                             const Icon(Icons.access_time, size: 18),
                           ],
                         ),
@@ -346,7 +419,13 @@ class _KalenderPageState extends State<KalenderPage> {
                     ),
                     const SizedBox(height: 16),
 
-                    const Text('Tanggal Selesai', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
+                    const Text(
+                      'Tanggal Selesai',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
                     const SizedBox(height: 8),
                     InkWell(
                       onTap: () async {
@@ -359,14 +438,20 @@ class _KalenderPageState extends State<KalenderPage> {
                         if (picked != null) {
                           setDialogState(() {
                             tanggalSelesai = DateTime(
-                              picked.year, picked.month, picked.day,
-                              jamSelesai.hour, jamSelesai.minute,
+                              picked.year,
+                              picked.month,
+                              picked.day,
+                              jamSelesai.hour,
+                              jamSelesai.minute,
                             );
                           });
                         }
                       },
                       child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 12,
+                        ),
                         decoration: BoxDecoration(
                           border: Border.all(color: Colors.grey.shade300),
                           borderRadius: BorderRadius.circular(8),
@@ -374,7 +459,9 @@ class _KalenderPageState extends State<KalenderPage> {
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            Text(DateFormat('dd/MM/yyyy').format(tanggalSelesai)),
+                            Text(
+                              DateFormat('dd/MM/yyyy').format(tanggalSelesai),
+                            ),
                             const Icon(Icons.calendar_today, size: 18),
                           ],
                         ),
@@ -391,14 +478,20 @@ class _KalenderPageState extends State<KalenderPage> {
                           setDialogState(() {
                             jamSelesai = picked;
                             tanggalSelesai = DateTime(
-                              tanggalSelesai.year, tanggalSelesai.month, tanggalSelesai.day,
-                              picked.hour, picked.minute,
+                              tanggalSelesai.year,
+                              tanggalSelesai.month,
+                              tanggalSelesai.day,
+                              picked.hour,
+                              picked.minute,
                             );
                           });
                         }
                       },
                       child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 12,
+                        ),
                         decoration: BoxDecoration(
                           border: Border.all(color: Colors.grey.shade300),
                           borderRadius: BorderRadius.circular(8),
@@ -406,7 +499,9 @@ class _KalenderPageState extends State<KalenderPage> {
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            Text('${jamSelesai.hour.toString().padLeft(2, '0')}:${jamSelesai.minute.toString().padLeft(2, '0')}'),
+                            Text(
+                              '${jamSelesai.hour.toString().padLeft(2, '0')}:${jamSelesai.minute.toString().padLeft(2, '0')}',
+                            ),
                             const Icon(Icons.access_time, size: 18),
                           ],
                         ),
@@ -414,7 +509,13 @@ class _KalenderPageState extends State<KalenderPage> {
                     ),
                     const SizedBox(height: 16),
 
-                    const Text('Catatan (Opsional)', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
+                    const Text(
+                      'Catatan (Opsional)',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
                     const SizedBox(height: 8),
                     TextField(
                       controller: notesController,
@@ -425,7 +526,10 @@ class _KalenderPageState extends State<KalenderPage> {
                           borderRadius: BorderRadius.circular(8),
                           borderSide: BorderSide(color: Colors.grey.shade300),
                         ),
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 12,
+                        ),
                       ),
                     ),
                     const SizedBox(height: 24),
@@ -435,59 +539,81 @@ class _KalenderPageState extends State<KalenderPage> {
                       children: [
                         TextButton(
                           onPressed: () => Navigator.pop(context),
-                          child: const Text('Batal', style: TextStyle(color: Colors.grey)),
+                          child: const Text(
+                            'Batal',
+                            style: TextStyle(color: Colors.grey),
+                          ),
                         ),
                         const SizedBox(width: 8),
                         ElevatedButton(
                           onPressed: () async {
                             if (selectedItemId == null) {
                               ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(content: Text('Pilih item terlebih dahulu')),
+                                const SnackBar(
+                                  content: Text('Pilih item terlebih dahulu'),
+                                ),
                               );
                               return;
                             }
 
                             Navigator.pop(context);
-                            
+
                             showDialog(
                               context: context,
                               barrierDismissible: false,
-                              builder: (context) => const Center(child: CircularProgressIndicator()),
+                              builder: (context) => const Center(
+                                child: CircularProgressIndicator(),
+                              ),
                             );
 
                             try {
                               await _bookingService.createBooking(
-                                type: selectedType == 'Sewa Ruangan' ? 'room' : 'inventory',
+                                type: selectedType == 'Sewa Ruangan'
+                                    ? 'room'
+                                    : 'inventory',
                                 itemId: selectedItemId!,
                                 itemName: selectedItemName,
                                 start: tanggalMulai,
                                 end: tanggalSelesai,
                                 quantity: quantity,
-                                notes: notesController.text.isEmpty ? peminjamController.text : notesController.text,
+                                notes: notesController.text.isEmpty
+                                    ? peminjamController.text
+                                    : notesController.text,
                               );
 
                               await _loadData();
-                              
+
                               if (mounted) {
                                 Navigator.pop(context);
                                 ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(content: Text('Reservasi berhasil ditambahkan')),
+                                  const SnackBar(
+                                    content: Text(
+                                      'Reservasi berhasil ditambahkan',
+                                    ),
+                                  ),
                                 );
                               }
                             } catch (e) {
                               if (mounted) {
                                 Navigator.pop(context);
                                 ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(content: Text('Gagal: ${e.toString()}')),
+                                  SnackBar(
+                                    content: Text('Gagal: ${e.toString()}'),
+                                  ),
                                 );
                               }
                             }
                           },
                           style: ElevatedButton.styleFrom(
                             backgroundColor: const Color(0xFF4CAF50),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
                           ),
-                          child: const Text('Simpan', style: TextStyle(color: Colors.white)),
+                          child: const Text(
+                            'Simpan',
+                            style: TextStyle(color: Colors.white),
+                          ),
                         ),
                       ],
                     ),
@@ -502,8 +628,20 @@ class _KalenderPageState extends State<KalenderPage> {
   }
 
   String _getMonthName(int month) {
-    const months = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
-      'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
+    const months = [
+      'Januari',
+      'Februari',
+      'Maret',
+      'April',
+      'Mei',
+      'Juni',
+      'Juli',
+      'Agustus',
+      'September',
+      'Oktober',
+      'November',
+      'Desember',
+    ];
     return months[month - 1];
   }
 
@@ -517,71 +655,100 @@ class _KalenderPageState extends State<KalenderPage> {
             child: isLoading
                 ? const Center(child: CircularProgressIndicator())
                 : errorMessage != null
-                    ? Center(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Text('Error: $errorMessage'),
-                            const SizedBox(height: 16),
-                            ElevatedButton(
-                              onPressed: _loadData,
-                              child: const Text('Coba Lagi'),
-                            ),
-                          ],
+                ? Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text('Error: $errorMessage'),
+                        const SizedBox(height: 16),
+                        ElevatedButton(
+                          onPressed: _loadData,
+                          child: const Text('Coba Lagi'),
                         ),
-                      )
-                    : RefreshIndicator(
-                        onRefresh: _loadData,
-                        child: SingleChildScrollView(
-                          physics: const AlwaysScrollableScrollPhysics(),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Container(
-                                padding: const EdgeInsets.fromLTRB(20, 50, 20, 20),
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
+                      ],
+                    ),
+                  )
+                : RefreshIndicator(
+                    onRefresh: _loadData,
+                    child: SingleChildScrollView(
+                      physics: const AlwaysScrollableScrollPhysics(),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.fromLTRB(20, 50, 20, 20),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text(
+                                  'MASJID Symasul Ulum',
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    color: Colors.grey,
+                                    letterSpacing: 1.5,
+                                  ),
+                                ),
+                                const SizedBox(height: 8),
+                                Row(
                                   children: [
-                                    const Text('MASJID Symasul Ulum',
-                                      style: TextStyle(fontSize: 11, color: Colors.grey, letterSpacing: 1.5)),
-                                    const SizedBox(height: 8),
-                                    Row(
-                                      children: [
-                                        const Expanded(
-                                          child: Column(
-                                            crossAxisAlignment: CrossAxisAlignment.start,
-                                            children: [
-                                              Text('Kalender', style: TextStyle(fontSize: 26, fontWeight: FontWeight.bold)),
-                                              Text('Reservasi', style: TextStyle(fontSize: 26, fontWeight: FontWeight.bold)),
-                                            ],
+                                    const Expanded(
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            'Kalender',
+                                            style: TextStyle(
+                                              fontSize: 26,
+                                              fontWeight: FontWeight.bold,
+                                            ),
                                           ),
-                                        ),
-                                        Container(
-                                          padding: const EdgeInsets.all(14),
-                                          decoration: BoxDecoration(
-                                            color: const Color(0xFFE8F5E9),
-                                            borderRadius: BorderRadius.circular(14),
+                                          Text(
+                                            'Reservasi',
+                                            style: TextStyle(
+                                              fontSize: 26,
+                                              fontWeight: FontWeight.bold,
+                                            ),
                                           ),
-                                          child: const Icon(Icons.calendar_today, color: Color(0xFF4CAF50), size: 24),
-                                        ),
-                                      ],
+                                        ],
+                                      ),
                                     ),
-                                    const SizedBox(height: 6),
-                                    const Text('Untuk pilihan peminjaman\nruangan atau barang masjid',
-                                      style: TextStyle(fontSize: 13, color: Colors.grey, height: 1.4)),
+                                    Container(
+                                      padding: const EdgeInsets.all(14),
+                                      decoration: BoxDecoration(
+                                        color: const Color(0xFFE8F5E9),
+                                        borderRadius: BorderRadius.circular(14),
+                                      ),
+                                      child: const Icon(
+                                        Icons.calendar_today,
+                                        color: Color(0xFF4CAF50),
+                                        size: 24,
+                                      ),
+                                    ),
                                   ],
                                 ),
-                              ),
-                              _buildCalendar(),
-                              const SizedBox(height: 20),
-                              _keterangan(),
-                              const SizedBox(height: 20),
-                              _daftarReservasi(),
-                              const SizedBox(height: 100),
-                            ],
+                                const SizedBox(height: 6),
+                                const Text(
+                                  'Untuk pilihan peminjaman\nruangan atau barang masjid',
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    color: Colors.grey,
+                                    height: 1.4,
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
-                        ),
+                          _buildCalendar(),
+                          const SizedBox(height: 20),
+                          _keterangan(),
+                          const SizedBox(height: 20),
+                          _daftarReservasi(),
+                          const SizedBox(height: 100),
+                        ],
                       ),
+                    ),
+                  ),
           ),
         ],
       ),
@@ -597,7 +764,11 @@ class _KalenderPageState extends State<KalenderPage> {
         color: Colors.white,
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
-          BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, 4)),
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
         ],
       ),
       child: Column(
@@ -605,13 +776,24 @@ class _KalenderPageState extends State<KalenderPage> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text('${_getMonthName(selectedMonth.month)} ${selectedMonth.year}',
-                style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600)),
+              Text(
+                '${_getMonthName(selectedMonth.month)} ${selectedMonth.year}',
+                style: const TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
               Row(
                 children: [
-                  InkWell(onTap: previousMonth, child: _circleIcon(Icons.chevron_left)),
+                  InkWell(
+                    onTap: previousMonth,
+                    child: _circleIcon(Icons.chevron_left),
+                  ),
                   const SizedBox(width: 8),
-                  InkWell(onTap: nextMonth, child: _circleIcon(Icons.chevron_right)),
+                  InkWell(
+                    onTap: nextMonth,
+                    child: _circleIcon(Icons.chevron_right),
+                  ),
                 ],
               ),
             ],
@@ -620,12 +802,21 @@ class _KalenderPageState extends State<KalenderPage> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: ['Min', 'Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab']
-                .map((day) => SizedBox(
-                      width: 36,
-                      child: Center(
-                        child: Text(day, style: const TextStyle(fontSize: 11, color: Colors.grey, fontWeight: FontWeight.w500)),
+                .map(
+                  (day) => SizedBox(
+                    width: 36,
+                    child: Center(
+                      child: Text(
+                        day,
+                        style: const TextStyle(
+                          fontSize: 11,
+                          color: Colors.grey,
+                          fontWeight: FontWeight.w500,
+                        ),
                       ),
-                    ))
+                    ),
+                  ),
+                )
                 .toList(),
           ),
           const SizedBox(height: 10),
@@ -635,9 +826,13 @@ class _KalenderPageState extends State<KalenderPage> {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceAround,
                 children: List.generate(7, (dayIndex) {
-                  int dayNumber = weekIndex * 7 + dayIndex - getFirstDayOfWeek(selectedMonth) + 1;
+                  int dayNumber =
+                      weekIndex * 7 +
+                      dayIndex -
+                      getFirstDayOfWeek(selectedMonth) +
+                      1;
                   int daysInMonth = getDaysInMonth(selectedMonth);
-                  
+
                   if (dayNumber < 1 || dayNumber > daysInMonth) {
                     return const SizedBox(width: 36, height: 36);
                   }
@@ -654,18 +849,24 @@ class _KalenderPageState extends State<KalenderPage> {
                       width: 36,
                       height: 36,
                       decoration: BoxDecoration(
-                        color: selectedDay == dayNumber ? const Color(0xFF4CAF50) : Colors.transparent,
+                        color: selectedDay == dayNumber
+                            ? const Color(0xFF4CAF50)
+                            : Colors.transparent,
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: Stack(
                         children: [
                           Center(
-                            child: Text('$dayNumber',
+                            child: Text(
+                              '$dayNumber',
                               style: TextStyle(
-                                color: selectedDay == dayNumber ? Colors.white : Colors.black87,
+                                color: selectedDay == dayNumber
+                                    ? Colors.white
+                                    : Colors.black87,
                                 fontWeight: FontWeight.w500,
                                 fontSize: 13,
-                              )),
+                              ),
+                            ),
                           ),
                           if (hasReservation)
                             Positioned(
@@ -675,8 +876,12 @@ class _KalenderPageState extends State<KalenderPage> {
                               child: Row(
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
-                                  if (hasRuangan) _dot(const Color(0xFF2E7D32)),
-                                  if (hasBarang) _dot(const Color(0xFF4CAF50), opacity: 0.3),
+                                  if (hasRuangan)
+                                    _dot(
+                                      const Color.fromARGB(255, 37, 41, 255),
+                                    ),
+                                  if (hasBarang)
+                                    _dot(const Color.fromARGB(255, 241, 16, 4)),
                                 ],
                               ),
                             ),
@@ -696,7 +901,10 @@ class _KalenderPageState extends State<KalenderPage> {
   Widget _circleIcon(IconData icon) {
     return Container(
       padding: const EdgeInsets.all(6),
-      decoration: const BoxDecoration(color: Color(0xFFE8F5E9), shape: BoxShape.circle),
+      decoration: const BoxDecoration(
+        color: Color(0xFFE8F5E9),
+        shape: BoxShape.circle,
+      ),
       child: Icon(icon, color: const Color(0xFF4CAF50), size: 18),
     );
   }
@@ -706,7 +914,10 @@ class _KalenderPageState extends State<KalenderPage> {
       width: 4,
       height: 4,
       margin: const EdgeInsets.symmetric(horizontal: 1),
-      decoration: BoxDecoration(color: color.withOpacity(opacity), shape: BoxShape.circle),
+      decoration: BoxDecoration(
+        color: color.withOpacity(opacity),
+        shape: BoxShape.circle,
+      ),
     );
   }
 
@@ -716,21 +927,30 @@ class _KalenderPageState extends State<KalenderPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('Keterangan', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600)),
+          const Text(
+            'Keterangan',
+            style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
+          ),
           const SizedBox(height: 12),
           Row(
             children: [
-              _dot(const Color(0xFF2E7D32)),
+              _dot(const Color.fromARGB(255, 37, 41, 255)),
               const SizedBox(width: 10),
-              const Text('Tanggal dengan peminjaman ruangan', style: TextStyle(fontSize: 12)),
+              const Text(
+                'Tanggal dengan peminjaman ruangan',
+                style: TextStyle(fontSize: 12),
+              ),
             ],
           ),
           const SizedBox(height: 10),
           Row(
             children: [
-              _dot(const Color(0xFF4CAF50), opacity: 0.3),
+              _dot(const Color.fromARGB(255, 241, 16, 4)),
               const SizedBox(width: 10),
-              const Text('Tanggal dengan peminjaman barang', style: TextStyle(fontSize: 12)),
+              const Text(
+                'Tanggal dengan peminjaman barang',
+                style: TextStyle(fontSize: 12),
+              ),
             ],
           ),
         ],
@@ -746,13 +966,19 @@ class _KalenderPageState extends State<KalenderPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('Reservasi di Bulan Ini', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600)),
+          const Text(
+            'Reservasi di Bulan Ini',
+            style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
+          ),
           const SizedBox(height: 12),
           if (filteredBookings.isEmpty)
             Container(
               padding: const EdgeInsets.all(20),
               child: const Center(
-                child: Text('Belum ada reservasi di bulan ini', style: TextStyle(color: Colors.grey, fontSize: 13)),
+                child: Text(
+                  'Belum ada reservasi di bulan ini',
+                  style: TextStyle(color: Colors.grey, fontSize: 13),
+                ),
               ),
             )
           else
@@ -764,7 +990,11 @@ class _KalenderPageState extends State<KalenderPage> {
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(12),
                   boxShadow: [
-                    BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 8, offset: const Offset(0, 2)),
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.03),
+                      blurRadius: 8,
+                      offset: const Offset(0, 2),
+                    ),
                   ],
                 ),
                 child: Row(
@@ -777,8 +1007,13 @@ class _KalenderPageState extends State<KalenderPage> {
                         borderRadius: BorderRadius.circular(10),
                       ),
                       child: Center(
-                        child: Text(booking.startTime.day.toString(),
-                          style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15)),
+                        child: Text(
+                          booking.startTime.day.toString(),
+                          style: const TextStyle(
+                            fontWeight: FontWeight.w600,
+                            fontSize: 15,
+                          ),
+                        ),
                       ),
                     ),
                     const SizedBox(width: 12),
@@ -786,22 +1021,38 @@ class _KalenderPageState extends State<KalenderPage> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(booking.itemName, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500)),
+                          Text(
+                            booking.itemName,
+                            style: const TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
                           const SizedBox(height: 4),
                           Text(
                             '${DateFormat('HH:mm').format(booking.startTime)} - ${DateFormat('HH:mm').format(booking.endTime)}',
-                            style: const TextStyle(fontSize: 11, color: Colors.grey),
+                            style: const TextStyle(
+                              fontSize: 11,
+                              color: Colors.grey,
+                            ),
                           ),
-                          if (booking.type == 'inventory' && booking.quantity > 1)
+                          if (booking.type == 'inventory' &&
+                              booking.quantity > 1)
                             Text(
                               'Jumlah: ${booking.quantity}',
-                              style: const TextStyle(fontSize: 11, color: Colors.grey),
+                              style: const TextStyle(
+                                fontSize: 11,
+                                color: Colors.grey,
+                              ),
                             ),
                         ],
                       ),
                     ),
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 4,
+                      ),
                       decoration: BoxDecoration(
                         color: _getStatusColor(booking.status).withOpacity(0.1),
                         borderRadius: BorderRadius.circular(6),
