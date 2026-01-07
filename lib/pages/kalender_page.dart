@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'dashboard_page.dart';
@@ -46,35 +48,69 @@ class _KalenderPageState extends State<KalenderPage> {
   final InventoryService _inventoryService = InventoryService();
   final RuanganService _ruanganService = RuanganService();
 
+  static const Duration _apiTimeout = Duration(seconds: 20);
+
   @override
   void initState() {
     super.initState();
-    _loadData();
+    _loadInitialData();
   }
 
-  Future<void> _loadData() async {
+  Future<void> _loadInitialData() async {
+    if (!mounted) return;
     setState(() {
       isLoading = true;
       errorMessage = null;
     });
 
     try {
-      final bookings = await _bookingService.fetchBookings();
-      final inventory = await _inventoryService.fetchInventory();
-      final ruangan = await _ruanganService.fetchRuangan();
-
-      setState(() {
-        allBookings = bookings;
-        inventoryItems = inventory;
-        ruanganItems = ruangan;
-        isLoading = false;
-      });
+      await _fetchAllData();
+      if (!mounted) return;
+      setState(() => isLoading = false);
     } catch (e) {
+      if (!mounted) return;
       setState(() {
         errorMessage = e.toString();
         isLoading = false;
       });
     }
+  }
+
+  /// Refresh data TANPA nyalain full-page loader.
+  /// - Untuk pull-to-refresh: throwOnError = false (biar indikator stop)
+  /// - Untuk submit booking: throwOnError = true (biar masuk catch)
+  Future<void> _refreshData({bool throwOnError = false}) async {
+    if (!mounted) return;
+    setState(() => errorMessage = null);
+
+    try {
+      await _fetchAllData();
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => errorMessage = e.toString());
+      if (throwOnError) rethrow;
+    }
+  }
+
+  Future<void> _fetchAllData() async {
+    final bookingsFuture = _bookingService.fetchBookings().timeout(_apiTimeout);
+    final inventoryFuture = _inventoryService.fetchInventory().timeout(
+      _apiTimeout,
+    );
+    final ruanganFuture = _ruanganService.fetchRuangan().timeout(_apiTimeout);
+
+    final results = await Future.wait([
+      bookingsFuture,
+      inventoryFuture,
+      ruanganFuture,
+    ], eagerError: true).timeout(_apiTimeout);
+
+    if (!mounted) return;
+    setState(() {
+      allBookings = results[0] as List<BookingItem>;
+      inventoryItems = results[1] as List<InventoryItem>;
+      ruanganItems = results[2] as List<RuanganItem>;
+    });
   }
 
   Map<String, List<String>> get reservations {
@@ -83,9 +119,7 @@ class _KalenderPageState extends State<KalenderPage> {
     for (final booking in allBookings) {
       final dateKey = DateFormat('yyyy-MM-dd').format(booking.startTime);
 
-      if (!result.containsKey(dateKey)) {
-        result[dateKey] = [];
-      }
+      result.putIfAbsent(dateKey, () => []);
 
       final type = booking.type == 'inventory' ? 'barang' : 'ruangan';
       if (!result[dateKey]!.contains(type)) {
@@ -97,8 +131,9 @@ class _KalenderPageState extends State<KalenderPage> {
   }
 
   List<BookingItem> _getFilteredBookings() {
-    String yearMonth =
+    final yearMonth =
         '${selectedMonth.year}-${selectedMonth.month.toString().padLeft(2, '0')}';
+
     return allBookings.where((booking) {
       final bookingMonth = DateFormat('yyyy-MM').format(booking.startTime);
       return bookingMonth == yearMonth;
@@ -141,8 +176,10 @@ class _KalenderPageState extends State<KalenderPage> {
     int? selectedItemId;
     String selectedItemName = '';
     int quantity = 1;
-    TextEditingController peminjamController = TextEditingController();
-    TextEditingController notesController = TextEditingController();
+
+    final peminjamController = TextEditingController();
+    final notesController = TextEditingController();
+
     DateTime tanggalMulai = DateTime(
       selectedMonth.year,
       selectedMonth.month,
@@ -157,13 +194,13 @@ class _KalenderPageState extends State<KalenderPage> {
       17,
       0,
     );
-    TimeOfDay jamMulai = TimeOfDay(hour: 8, minute: 0);
-    TimeOfDay jamSelesai = TimeOfDay(hour: 17, minute: 0);
+    TimeOfDay jamMulai = const TimeOfDay(hour: 8, minute: 0);
+    TimeOfDay jamSelesai = const TimeOfDay(hour: 17, minute: 0);
 
     showDialog(
       context: context,
-      builder: (context) => StatefulBuilder(
-        builder: (context, setDialogState) {
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (dialogContext, setDialogState) {
           final availableItems = selectedType == 'Sewa Ruangan'
               ? ruanganItems.where((r) => r.isAvailable).toList()
               : inventoryItems.where((i) => i.isAvailable).toList();
@@ -341,8 +378,8 @@ class _KalenderPageState extends State<KalenderPage> {
                     const SizedBox(height: 8),
                     InkWell(
                       onTap: () async {
-                        DateTime? picked = await showDatePicker(
-                          context: context,
+                        final picked = await showDatePicker(
+                          context: dialogContext,
                           initialDate: tanggalMulai,
                           firstDate: DateTime(2020),
                           lastDate: DateTime(2030),
@@ -380,8 +417,8 @@ class _KalenderPageState extends State<KalenderPage> {
                     const SizedBox(height: 8),
                     InkWell(
                       onTap: () async {
-                        TimeOfDay? picked = await showTimePicker(
-                          context: context,
+                        final picked = await showTimePicker(
+                          context: dialogContext,
                           initialTime: jamMulai,
                         );
                         if (picked != null) {
@@ -429,8 +466,8 @@ class _KalenderPageState extends State<KalenderPage> {
                     const SizedBox(height: 8),
                     InkWell(
                       onTap: () async {
-                        DateTime? picked = await showDatePicker(
-                          context: context,
+                        final picked = await showDatePicker(
+                          context: dialogContext,
                           initialDate: tanggalSelesai,
                           firstDate: DateTime(2020),
                           lastDate: DateTime(2030),
@@ -470,8 +507,8 @@ class _KalenderPageState extends State<KalenderPage> {
                     const SizedBox(height: 8),
                     InkWell(
                       onTap: () async {
-                        TimeOfDay? picked = await showTimePicker(
-                          context: context,
+                        final picked = await showTimePicker(
+                          context: dialogContext,
                           initialTime: jamSelesai,
                         );
                         if (picked != null) {
@@ -538,7 +575,7 @@ class _KalenderPageState extends State<KalenderPage> {
                       mainAxisAlignment: MainAxisAlignment.end,
                       children: [
                         TextButton(
-                          onPressed: () => Navigator.pop(context),
+                          onPressed: () => Navigator.pop(dialogContext),
                           child: const Text(
                             'Batal',
                             style: TextStyle(color: Colors.grey),
@@ -547,8 +584,11 @@ class _KalenderPageState extends State<KalenderPage> {
                         const SizedBox(width: 8),
                         ElevatedButton(
                           onPressed: () async {
+                            // Pakai context milik PAGE, bukan context dialog.
+                            final rootContext = this.context;
+
                             if (selectedItemId == null) {
-                              ScaffoldMessenger.of(context).showSnackBar(
+                              ScaffoldMessenger.of(rootContext).showSnackBar(
                                 const SnackBar(
                                   content: Text('Pilih item terlebih dahulu'),
                                 ),
@@ -556,52 +596,84 @@ class _KalenderPageState extends State<KalenderPage> {
                               return;
                             }
 
-                            Navigator.pop(context);
+                            // Tutup form dialog dulu (pakai dialogContext).
+                            Navigator.of(dialogContext).pop();
 
+                            // Tampilkan loading dialog (pakai rootContext).
+                            bool loadingShown = false;
                             showDialog(
-                              context: context,
+                              context: rootContext,
                               barrierDismissible: false,
-                              builder: (context) => const Center(
-                                child: CircularProgressIndicator(),
-                              ),
+                              useRootNavigator: true,
+                              builder: (_) {
+                                loadingShown = true;
+                                return const Center(
+                                  child: CircularProgressIndicator(),
+                                );
+                              },
                             );
 
                             try {
-                              await _bookingService.createBooking(
-                                type: selectedType == 'Sewa Ruangan'
-                                    ? 'room'
-                                    : 'inventory',
-                                itemId: selectedItemId!,
-                                itemName: selectedItemName,
-                                start: tanggalMulai,
-                                end: tanggalSelesai,
-                                quantity: quantity,
-                                notes: notesController.text.isEmpty
-                                    ? peminjamController.text
-                                    : notesController.text,
+                              await _bookingService
+                                  .createBooking(
+                                    type: selectedType == 'Sewa Ruangan'
+                                        ? 'room'
+                                        : 'inventory',
+                                    itemId: selectedItemId!,
+                                    itemName: selectedItemName,
+                                    start: tanggalMulai,
+                                    end: tanggalSelesai,
+                                    quantity: quantity,
+                                    notes: notesController.text.isEmpty
+                                        ? peminjamController.text
+                                        : notesController.text,
+                                  )
+                                  .timeout(_apiTimeout);
+
+                              // Refresh data (kalau gagal, biar masuk catch)
+                              await _refreshData(
+                                throwOnError: true,
+                              ).timeout(_apiTimeout);
+
+                              if (!mounted) return;
+
+                              // Tutup loading dialog
+                              if (loadingShown &&
+                                  Navigator.of(
+                                    rootContext,
+                                    rootNavigator: true,
+                                  ).canPop()) {
+                                Navigator.of(
+                                  rootContext,
+                                  rootNavigator: true,
+                                ).pop();
+                              }
+
+                              ScaffoldMessenger.of(rootContext).showSnackBar(
+                                const SnackBar(
+                                  content: Text(
+                                    'Reservasi berhasil ditambahkan',
+                                  ),
+                                ),
                               );
-
-                              await _loadData();
-
-                              if (mounted) {
-                                Navigator.pop(context);
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(
-                                    content: Text(
-                                      'Reservasi berhasil ditambahkan',
-                                    ),
-                                  ),
-                                );
-                              }
                             } catch (e) {
-                              if (mounted) {
-                                Navigator.pop(context);
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(
-                                    content: Text('Gagal: ${e.toString()}'),
-                                  ),
-                                );
+                              if (!mounted) return;
+
+                              // Tutup loading dialog walaupun error
+                              if (loadingShown &&
+                                  Navigator.of(
+                                    rootContext,
+                                    rootNavigator: true,
+                                  ).canPop()) {
+                                Navigator.of(
+                                  rootContext,
+                                  rootNavigator: true,
+                                ).pop();
                               }
+
+                              ScaffoldMessenger.of(rootContext).showSnackBar(
+                                SnackBar(content: Text('Gagal: $e')),
+                              );
                             }
                           },
                           style: ElevatedButton.styleFrom(
@@ -662,14 +734,14 @@ class _KalenderPageState extends State<KalenderPage> {
                         Text('Error: $errorMessage'),
                         const SizedBox(height: 16),
                         ElevatedButton(
-                          onPressed: _loadData,
+                          onPressed: _loadInitialData,
                           child: const Text('Coba Lagi'),
                         ),
                       ],
                     ),
                   )
                 : RefreshIndicator(
-                    onRefresh: _loadData,
+                    onRefresh: () => _refreshData(throwOnError: false),
                     child: SingleChildScrollView(
                       physics: const AlwaysScrollableScrollPhysics(),
                       child: Column(
@@ -826,22 +898,22 @@ class _KalenderPageState extends State<KalenderPage> {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceAround,
                 children: List.generate(7, (dayIndex) {
-                  int dayNumber =
+                  final dayNumber =
                       weekIndex * 7 +
                       dayIndex -
                       getFirstDayOfWeek(selectedMonth) +
                       1;
-                  int daysInMonth = getDaysInMonth(selectedMonth);
+                  final daysInMonth = getDaysInMonth(selectedMonth);
 
                   if (dayNumber < 1 || dayNumber > daysInMonth) {
                     return const SizedBox(width: 36, height: 36);
                   }
 
-                  String dateKey = _getDateKey(dayNumber);
-                  bool hasReservation = reservations.containsKey(dateKey);
-                  List<String>? types = reservations[dateKey];
-                  bool hasRuangan = types?.contains('ruangan') ?? false;
-                  bool hasBarang = types?.contains('barang') ?? false;
+                  final dateKey = _getDateKey(dayNumber);
+                  final hasReservation = reservations.containsKey(dateKey);
+                  final types = reservations[dateKey];
+                  final hasRuangan = types?.contains('ruangan') ?? false;
+                  final hasBarang = types?.contains('barang') ?? false;
 
                   return InkWell(
                     onTap: () => onDayTapped(dayNumber),
@@ -959,7 +1031,7 @@ class _KalenderPageState extends State<KalenderPage> {
   }
 
   Widget _daftarReservasi() {
-    List<BookingItem> filteredBookings = _getFilteredBookings();
+    final filteredBookings = _getFilteredBookings();
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -1136,7 +1208,7 @@ class _KalenderPageState extends State<KalenderPage> {
   }
 
   Widget _buildBottomIcon(IconData icon, String label, int index) {
-    bool isSelected = currentNavIndex == index;
+    final isSelected = currentNavIndex == index;
     return GestureDetector(
       onTap: () {
         setState(() => currentNavIndex = index);
