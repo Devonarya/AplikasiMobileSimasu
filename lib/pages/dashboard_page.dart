@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:timezone/timezone.dart' as tz;
-import 'package:timezone/data/latest_all.dart' as tz;
+import 'package:timezone/data/latest.dart' as tzdata;
 
 import 'package:simasu/pages/announcement_detail_page.dart';
 import 'package:simasu/pages/kalender_page.dart';
@@ -70,7 +70,7 @@ class _HomePageState extends State<HomePage> {
 
   Future<void> _initNotifications() async {
     // Initialize timezone
-    tz.initializeTimeZones();
+    tzdata.initializeTimeZones();
     // Set timezone ke Asia/Jakarta (WIB)
     tz.setLocalLocation(tz.getLocation('Asia/Jakarta'));
 
@@ -258,7 +258,6 @@ class _HomePageState extends State<HomePage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Small header "Home"
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
@@ -274,7 +273,6 @@ class _HomePageState extends State<HomePage> {
               ),
               const SizedBox(height: 12),
 
-              // Main scroll area
               Expanded(
                 child: RefreshIndicator(
                   onRefresh: _refreshData,
@@ -286,7 +284,6 @@ class _HomePageState extends State<HomePage> {
                         const GreetingCard(userName: 'Jamaah'),
                         const SizedBox(height: 18),
 
-                        // Berita section
                         const Text(
                           'Berita & Pengumuman',
                           style: TextStyle(
@@ -297,7 +294,6 @@ class _HomePageState extends State<HomePage> {
                         ),
                         const SizedBox(height: 12),
 
-                        // Announcement Cards
                         SizedBox(
                           height: 130,
                           child: FutureBuilder<List<AnnouncementItem>>(
@@ -367,7 +363,6 @@ class _HomePageState extends State<HomePage> {
                         ),
                         const SizedBox(height: 22),
 
-                        // Agenda header
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
@@ -399,7 +394,6 @@ class _HomePageState extends State<HomePage> {
                         ),
                         const SizedBox(height: 8),
 
-                        // Agenda list (FROM API)
                         FutureBuilder<List<AgendaItem>>(
                           future: _agendaFuture,
                           builder: (context, snapshot) {
@@ -445,13 +439,11 @@ class _HomePageState extends State<HomePage> {
 
                             final agendaList = snapshot.data ?? [];
 
-                            // Filter agenda: belum lewat atau sudah lewat maksimal 1 jam
                             final filteredAgendaList = agendaList.where((item) {
                               final difference = item.datetime.difference(
                                 DateTime.now(),
                               );
-                              return difference.inMinutes >=
-                                  -60; // >= -60 artinya maksimal 1 jam lewat
+                              return difference.inMinutes >= -60;
                             }).toList();
 
                             if (filteredAgendaList.isEmpty) {
@@ -466,7 +458,6 @@ class _HomePageState extends State<HomePage> {
                               );
                             }
 
-                            // Optional: urutkan dari yang paling dekat waktunya ke yang paling jauh
                             filteredAgendaList.sort(
                               (a, b) => a.datetime.compareTo(b.datetime),
                             );
@@ -535,7 +526,6 @@ class _HomePageState extends State<HomePage> {
         ),
       ),
 
-      // Navbar
       bottomNavigationBar: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12),
         child: Container(
@@ -707,6 +697,8 @@ class AnnouncementCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final radius = BorderRadius.circular(16);
+
     return GestureDetector(
       onTap: () {
         Navigator.push(
@@ -720,59 +712,70 @@ class AnnouncementCard extends StatelessWidget {
           ),
         );
       },
-      child: Container(
-        width: width,
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          gradient: const LinearGradient(
-            colors: [Color(0xFF1E8A3E), Color(0xFF60C375)],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
+      child: ClipRRect(
+        borderRadius: radius,
+        child: Container(
+          width: width,
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            gradient: const LinearGradient(
+              colors: [Color(0xFF1E8A3E), Color(0xFF60C375)],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            borderRadius: radius,
+            boxShadow: [
+              BoxShadow(
+                color: Colors.green.withOpacity(0.12),
+                blurRadius: 10,
+                offset: const Offset(0, 6),
+              ),
+            ],
           ),
-          borderRadius: BorderRadius.circular(16),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.green.withOpacity(0.12),
-              blurRadius: 10,
-              offset: const Offset(0, 6),
-            ),
-          ],
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-              decoration: BoxDecoration(
-                color: Colors.white24,
-                borderRadius: BorderRadius.circular(20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 6,
+                ),
+                decoration: BoxDecoration(
+                  color: Colors.white24,
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Text(
+                  tag,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  softWrap: false,
+                  style: const TextStyle(color: Colors.white, fontSize: 12),
+                ),
               ),
-              child: Text(
-                tag,
-                style: const TextStyle(color: Colors.white, fontSize: 12),
-              ),
-            ),
-            const SizedBox(height: 10),
-            Text(
-              title,
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 15,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Expanded(
-              child: Text(
-                subtitle,
-                maxLines: 3,
+              const SizedBox(height: 10),
+
+              Text(
+                title,
+                maxLines: 2,
                 overflow: TextOverflow.ellipsis,
-                style: const TextStyle(color: Colors.white70, fontSize: 12),
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 15,
+                  fontWeight: FontWeight.w700,
+                ),
               ),
-            ),
-          ],
+              const SizedBox(height: 8),
+
+              Flexible(
+                child: Text(
+                  subtitle,
+                  maxLines: 3,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(color: Colors.white70, fontSize: 12),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
