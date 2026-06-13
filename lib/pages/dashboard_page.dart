@@ -287,9 +287,9 @@ class _HomePageState extends State<HomePage> {
                         const Text(
                           'Berita & Pengumuman',
                           style: TextStyle(
-                            fontSize: 13,
-                            color: Colors.black54,
-                            fontWeight: FontWeight.w600,
+                            fontSize: 16,
+                            color: Colors.black87,
+                            fontWeight: FontWeight.w700,
                           ),
                         ),
                         const SizedBox(height: 12),
@@ -367,7 +367,7 @@ class _HomePageState extends State<HomePage> {
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
                             const Text(
-                              'Upcoming Event',
+                              'Agenda Mendatang',
                               style: TextStyle(
                                 fontSize: 16,
                                 fontWeight: FontWeight.w700,
