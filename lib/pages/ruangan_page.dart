@@ -1,8 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:simasu/pages/dashboard_page.dart' as dashboard;
-import 'package:simasu/pages/kalender_page.dart';
-import 'package:simasu/pages/profile_page.dart';
-import 'package:simasu/pages/inventaris_page.dart';
 
 import 'package:simasu/models/ruangan_model.dart';
 import 'package:simasu/services/ruangan_service.dart';
@@ -17,8 +13,6 @@ class RuanganPage extends StatefulWidget {
 }
 
 class _RuanganPageState extends State<RuanganPage> {
-  int _selectedIndex = 2;
-
   late Future<List<RuanganItem>> _roomFuture;
   final RuanganService _roomService = RuanganService();
   final BookingService _bookingService = BookingService();
@@ -308,95 +302,6 @@ class _RuanganPageState extends State<RuanganPage> {
           ),
         ),
       ),
-
-      // ================= BOTTOM NAVIGATION =================
-      bottomNavigationBar: _buildBottomNavbar(),
-    );
-  }
-
-  // ================= BOTTOM NAVIGATION =================
-  Widget _buildBottomNavbar() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12),
-      child: Container(
-        height: 64,
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(28),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.06),
-              blurRadius: 10,
-              offset: const Offset(0, 6),
-            ),
-          ],
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceAround,
-          children: [
-            _buildBottomIcon(Icons.home, 'Beranda', 0),
-            _buildBottomIcon(Icons.inventory_2, 'Inventaris', 1),
-            _buildBottomIcon(Icons.meeting_room, 'Ruangan', 2),
-            _buildBottomIcon(Icons.calendar_month, 'Kalender', 3),
-            _buildBottomIcon(Icons.person, 'Profil', 4),
-          ],
-        ),
-      ),
-    );
-  }
-
-  // ================= BOTTOM ICON =================
-  Widget _buildBottomIcon(IconData icon, String label, int index) {
-    final bool active = _selectedIndex == index;
-
-    return GestureDetector(
-      onTap: () {
-        setState(() => _selectedIndex = index);
-
-        switch (index) {
-          case 0:
-            Navigator.push(context,
-                MaterialPageRoute(builder: (_) => const dashboard.MasjidApp()));
-            break;
-          case 1:
-            Navigator.push(context,
-                MaterialPageRoute(builder: (_) => const InventarisPage()));
-            break;
-          case 3:
-            Navigator.push(
-                context, MaterialPageRoute(builder: (_) => const KalenderPage()));
-            break;
-          case 4:
-            Navigator.push(
-                context, MaterialPageRoute(builder: (_) => const ProfilePage()));
-            break;
-        }
-      },
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: active ? const Color(0xFF1E8A3E) : Colors.transparent,
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Icon(
-              icon,
-              size: 22,
-              color: active ? Colors.white : Colors.black54,
-            ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: 11,
-              color: active ? const Color(0xFF1E8A3E) : Colors.black54,
-            ),
-          ),
-        ],
-      ),
     );
   }
 
@@ -434,8 +339,10 @@ class _RuanganPageState extends State<RuanganPage> {
                 const SizedBox(height: 10),
 
                 Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 6,
+                  ),
                   decoration: BoxDecoration(
                     color: const Color(0xFFDFF0E5),
                     borderRadius: BorderRadius.circular(16),
@@ -455,14 +362,19 @@ class _RuanganPageState extends State<RuanganPage> {
                   const SizedBox(height: 10),
                   Row(
                     children: [
-                      Icon(Icons.check_circle_outline,
-                          size: 16, color: Colors.green[700]),
+                      Icon(
+                        Icons.check_circle_outline,
+                        size: 16,
+                        color: Colors.green[700],
+                      ),
                       const SizedBox(width: 6),
                       Expanded(
                         child: Text(
                           room.facilities!,
                           style: const TextStyle(
-                              fontSize: 12, color: Colors.black54),
+                            fontSize: 12,
+                            color: Colors.black54,
+                          ),
                         ),
                       ),
                     ],
@@ -508,11 +420,13 @@ class _RuanganPageState extends State<RuanganPage> {
           ElevatedButton(
             onPressed: isAvailable ? () => _showPeminjamanDialog(room) : null,
             style: ElevatedButton.styleFrom(
-              backgroundColor:
-                  isAvailable ? const Color(0xFF1E8A3E) : Colors.grey[400],
+              backgroundColor: isAvailable
+                  ? const Color(0xFF1E8A3E)
+                  : Colors.grey[400],
               padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
               shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(20)),
+                borderRadius: BorderRadius.circular(20),
+              ),
               elevation: 0,
             ),
             child: const Text(
@@ -558,8 +472,9 @@ class _RuanganPageState extends State<RuanganPage> {
       context: context,
       builder: (dialogContext) => StatefulBuilder(
         builder: (dialogCtx, setStateDialog) => Dialog(
-          shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(24),
+          ),
           child: SingleChildScrollView(
             child: Padding(
               padding: const EdgeInsets.all(24),
@@ -589,18 +504,21 @@ class _RuanganPageState extends State<RuanganPage> {
                             const Text(
                               "Ajukan Peminjaman",
                               style: TextStyle(
-                                  fontSize: 20, fontWeight: FontWeight.w800),
+                                fontSize: 20,
+                                fontWeight: FontWeight.w800,
+                              ),
                             ),
                             Text(
                               room.name,
                               style: TextStyle(
-                                  fontSize: 14,
-                                  color: Colors.green[700],
-                                  fontWeight: FontWeight.w600),
+                                fontSize: 14,
+                                color: Colors.green[700],
+                                fontWeight: FontWeight.w600,
+                              ),
                             ),
                           ],
                         ),
-                      )
+                      ),
                     ],
                   ),
                   const SizedBox(height: 24),
@@ -615,8 +533,11 @@ class _RuanganPageState extends State<RuanganPage> {
                   const SizedBox(height: 16),
 
                   _label("Nomor Kontak"),
-                  _input(kontak, "Contoh: 081234567890",
-                      type: TextInputType.phone),
+                  _input(
+                    kontak,
+                    "Contoh: 081234567890",
+                    type: TextInputType.phone,
+                  ),
                   const SizedBox(height: 16),
 
                   _label("Tanggal Peminjaman"),
@@ -628,15 +549,17 @@ class _RuanganPageState extends State<RuanganPage> {
                               context: dialogContext,
                               initialDate: tanggal,
                               firstDate: DateTime.now(),
-                              lastDate:
-                                  DateTime.now().add(const Duration(days: 365)),
+                              lastDate: DateTime.now().add(
+                                const Duration(days: 365),
+                              ),
                             );
                             if (pick != null) {
                               setStateDialog(() => tanggal = pick);
                             }
                           },
                     child: _dateBox(
-                        "${tanggal.day.toString().padLeft(2, '0')}/${tanggal.month.toString().padLeft(2, '0')}/${tanggal.year}"),
+                      "${tanggal.day.toString().padLeft(2, '0')}/${tanggal.month.toString().padLeft(2, '0')}/${tanggal.year}",
+                    ),
                   ),
                   const SizedBox(height: 16),
 
@@ -652,15 +575,17 @@ class _RuanganPageState extends State<RuanganPage> {
                                   ? null
                                   : () async {
                                       TimeOfDay? pick = await showTimePicker(
-                                          context: dialogContext,
-                                          initialTime: mulai);
+                                        context: dialogContext,
+                                        initialTime: mulai,
+                                      );
                                       if (pick != null) {
                                         setStateDialog(() => mulai = pick);
                                       }
                                     },
                               child: _dateBox(
-                                  "${mulai.hour.toString().padLeft(2, '0')}:${mulai.minute.toString().padLeft(2, '0')}"),
-                            )
+                                "${mulai.hour.toString().padLeft(2, '0')}:${mulai.minute.toString().padLeft(2, '0')}",
+                              ),
+                            ),
                           ],
                         ),
                       ),
@@ -675,15 +600,17 @@ class _RuanganPageState extends State<RuanganPage> {
                                   ? null
                                   : () async {
                                       TimeOfDay? pick = await showTimePicker(
-                                          context: dialogContext,
-                                          initialTime: selesai);
+                                        context: dialogContext,
+                                        initialTime: selesai,
+                                      );
                                       if (pick != null) {
                                         setStateDialog(() => selesai = pick);
                                       }
                                     },
                               child: _dateBox(
-                                  "${selesai.hour.toString().padLeft(2, '0')}:${selesai.minute.toString().padLeft(2, '0')}"),
-                            )
+                                "${selesai.hour.toString().padLeft(2, '0')}:${selesai.minute.toString().padLeft(2, '0')}",
+                              ),
+                            ),
                           ],
                         ),
                       ),
@@ -700,12 +627,15 @@ class _RuanganPageState extends State<RuanganPage> {
                               ? null
                               : () => Navigator.pop(dialogContext),
                           style: TextButton.styleFrom(
-                              padding:
-                                  const EdgeInsets.symmetric(vertical: 14)),
-                          child: const Text("Batal",
-                              style: TextStyle(
-                                  color: Colors.grey,
-                                  fontWeight: FontWeight.w600)),
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                          ),
+                          child: const Text(
+                            "Batal",
+                            style: TextStyle(
+                              color: Colors.grey,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
                         ),
                       ),
                       const SizedBox(width: 12),
@@ -717,13 +647,15 @@ class _RuanganPageState extends State<RuanganPage> {
                                   if (nama.text.trim().isEmpty ||
                                       kepentingan.text.trim().isEmpty ||
                                       kontak.text.trim().isEmpty) {
-                                    ScaffoldMessenger.of(this.context)
-                                        .showSnackBar(
+                                    ScaffoldMessenger.of(
+                                      this.context,
+                                    ).showSnackBar(
                                       const SnackBar(
                                         backgroundColor: Colors.orange,
                                         behavior: SnackBarBehavior.floating,
                                         content: Text(
-                                            'Harap lengkapi semua data'),
+                                          'Harap lengkapi semua data',
+                                        ),
                                       ),
                                     );
                                     return;
@@ -745,8 +677,9 @@ class _RuanganPageState extends State<RuanganPage> {
                                   );
 
                                   if (!end.isAfter(start)) {
-                                    ScaffoldMessenger.of(this.context)
-                                        .showSnackBar(
+                                    ScaffoldMessenger.of(
+                                      this.context,
+                                    ).showSnackBar(
                                       const SnackBar(
                                         backgroundColor: Colors.orange,
                                         behavior: SnackBarBehavior.floating,
@@ -779,21 +712,24 @@ class _RuanganPageState extends State<RuanganPage> {
                                     if (!mounted) return;
                                     Navigator.pop(dialogContext);
 
-                                    ScaffoldMessenger.of(this.context)
-                                        .showSnackBar(
+                                    ScaffoldMessenger.of(
+                                      this.context,
+                                    ).showSnackBar(
                                       SnackBar(
                                         content: Text(
                                           'Pengajuan peminjaman ${room.name} berhasil dikirim — menunggu persetujuan admin',
                                         ),
-                                        backgroundColor:
-                                            const Color(0xFF4CAF50),
+                                        backgroundColor: const Color(
+                                          0xFF4CAF50,
+                                        ),
                                         behavior: SnackBarBehavior.floating,
                                       ),
                                     );
                                   } catch (e) {
                                     setStateDialog(() => isSubmitting = false);
-                                    ScaffoldMessenger.of(this.context)
-                                        .showSnackBar(
+                                    ScaffoldMessenger.of(
+                                      this.context,
+                                    ).showSnackBar(
                                       SnackBar(
                                         content: Text(
                                           e.toString().replaceFirst(
@@ -808,9 +744,9 @@ class _RuanganPageState extends State<RuanganPage> {
                                   }
                                 },
                           style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(0xFF1E8A3E),
-                              padding:
-                                  const EdgeInsets.symmetric(vertical: 14)),
+                            backgroundColor: const Color(0xFF1E8A3E),
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                          ),
                           child: isSubmitting
                               ? const SizedBox(
                                   width: 18,
@@ -825,14 +761,15 @@ class _RuanganPageState extends State<RuanganPage> {
                               : const Text(
                                   "Ajukan",
                                   style: TextStyle(
-                                      fontSize: 15,
-                                      fontWeight: FontWeight.w700,
-                                      color: Colors.white),
+                                    fontSize: 15,
+                                    fontWeight: FontWeight.w700,
+                                    color: Colors.white,
+                                  ),
                                 ),
                         ),
                       ),
                     ],
-                  )
+                  ),
                 ],
               ),
             ),
@@ -845,14 +782,19 @@ class _RuanganPageState extends State<RuanganPage> {
   // ================= Helper Widgets =================
 
   Widget _label(String text) => Padding(
-        padding: const EdgeInsets.only(bottom: 6),
-        child: Text(text,
-            style:
-                const TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
-      );
+    padding: const EdgeInsets.only(bottom: 6),
+    child: Text(
+      text,
+      style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+    ),
+  );
 
-  Widget _input(TextEditingController c, String hint,
-      {int max = 1, TextInputType type = TextInputType.text}) {
+  Widget _input(
+    TextEditingController c,
+    String hint, {
+    int max = 1,
+    TextInputType type = TextInputType.text,
+  }) {
     return TextField(
       controller: c,
       maxLines: max,
@@ -860,8 +802,10 @@ class _RuanganPageState extends State<RuanganPage> {
       decoration: InputDecoration(
         hintText: hint,
         border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-        contentPadding:
-            const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 12,
+          vertical: 14,
+        ),
       ),
     );
   }
@@ -870,14 +814,14 @@ class _RuanganPageState extends State<RuanganPage> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
       decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: Colors.grey.shade300)),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey.shade300),
+      ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Text(text),
-          const Icon(Icons.calendar_today,
-              size: 18, color: Color(0xFF2F6E3E)),
+          const Icon(Icons.calendar_today, size: 18, color: Color(0xFF2F6E3E)),
         ],
       ),
     );

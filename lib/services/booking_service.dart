@@ -1,53 +1,59 @@
 import 'dart:convert';
-
+import 'dart:io';
 import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
-
 import '../models/booking_model.dart';
 import 'session_manager.dart';
 
 class BookingService {
   static const String baseUrl = 'https://api.indrayuda.my.id';
-
   static final DateFormat _fmt = DateFormat('yyyy-MM-dd HH:mm');
 
   Future<List<BookingItem>> fetchBookings() async {
-    final token = await SessionManager.getToken();
-    if (token == null || token.isEmpty) {
-      throw Exception('Belum login.');
-    }
-
-    final res = await http.get(
-      Uri.parse('$baseUrl/api/bookings'),
-      headers: {'Authorization': 'Bearer $token'},
-    );
-
-    if (res.statusCode == 401) {
-      await SessionManager.clear();
-      throw Exception(
-        'Sesi login habis / token tidak valid. Silakan login ulang.',
-      );
-    }
-
-    if (res.statusCode != 200) {
-      String message = 'Gagal memuat booking (HTTP ${res.statusCode})';
-      try {
-        final data = jsonDecode(res.body);
-        if (data is Map && data['message'] != null) {
-          message = data['message'].toString();
-        }
-      } catch (_) {
-        // ignore
+    try {
+      final token = await SessionManager.getToken();
+      if (token == null || token.isEmpty) {
+        throw Exception('Belum login.');
       }
-      throw Exception(message);
+
+      final res = await http.get(
+        Uri.parse('$baseUrl/api/bookings'),
+        headers: {'Authorization': 'Bearer $token'},
+      );
+
+      if (res.statusCode == 401) {
+        await SessionManager.clear();
+        throw Exception(
+          'Sesi login habis / token tidak valid. Silakan login ulang.',
+        );
+      }
+
+      if (res.statusCode != 200) {
+        String message = 'Gagal memuat booking (HTTP ${res.statusCode})';
+        try {
+          final data = jsonDecode(res.body);
+          if (data is Map && data['message'] != null) {
+            message = data['message'].toString();
+          }
+        } catch (_) {}
+        throw Exception(message);
+      }
+
+      final list = jsonDecode(res.body) as List;
+      final items = list
+          .map((e) => BookingItem.fromJson(e as Map<String, dynamic>))
+          .toList();
+
+      return _mergeInventoryDuplicates(items);
+    } on SocketException {
+      throw Exception(
+        'Tidak ada koneksi internet. Pastikan data seluler atau WiFi Anda aktif.',
+      );
+    } on HttpException {
+      throw Exception('Gagal menghubungi server. Coba lagi nanti.');
+    } on FormatException {
+      throw Exception('Terjadi kesalahan saat memproses data.');
     }
-
-    final list = jsonDecode(res.body) as List;
-    final items = list
-        .map((e) => BookingItem.fromJson(e as Map<String, dynamic>))
-        .toList();
-
-    return _mergeInventoryDuplicates(items);
   }
 
   Future<void> createBooking({
@@ -59,54 +65,60 @@ class BookingService {
     int quantity = 1,
     String? notes,
   }) async {
-    final token = await SessionManager.getToken();
-    if (token == null || token.isEmpty) {
-      throw Exception('Belum login.');
-    }
-
-    final body = {
-      'type': type,
-      'item_id': itemId,
-      'item_name': itemName,
-      'start_time': _fmt.format(start),
-      'end_time': _fmt.format(end),
-      'quantity': quantity,
-      'notes': notes ?? '',
-    };
-
-    final res = await http.post(
-      Uri.parse('$baseUrl/api/bookings'),
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer $token',
-      },
-      body: jsonEncode(body),
-    );
-
-    if (res.statusCode == 401) {
-      await SessionManager.clear();
-      throw Exception(
-        'Sesi login habis / token tidak valid. Silakan login ulang.',
-      );
-    }
-
-    if (res.statusCode == 201) return;
-
-    String message = 'Booking gagal (HTTP ${res.statusCode})';
     try {
-      final data = jsonDecode(res.body);
-      if (data is Map && data['message'] != null) {
-        message = data['message'].toString();
+      final token = await SessionManager.getToken();
+      if (token == null || token.isEmpty) {
+        throw Exception('Belum login.');
       }
-    } catch (_) {
-      // ignore
+
+      final body = {
+        'type': type,
+        'item_id': itemId,
+        'item_name': itemName,
+        'start_time': _fmt.format(start),
+        'end_time': _fmt.format(end),
+        'quantity': quantity,
+        'notes': notes ?? '',
+      };
+
+      final res = await http.post(
+        Uri.parse('$baseUrl/api/bookings'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+        body: jsonEncode(body),
+      );
+
+      if (res.statusCode == 401) {
+        await SessionManager.clear();
+        throw Exception(
+          'Sesi login habis / token tidak valid. Silakan login ulang.',
+        );
+      }
+
+      if (res.statusCode == 201) return;
+
+      String message = 'Booking gagal (HTTP ${res.statusCode})';
+      try {
+        final data = jsonDecode(res.body);
+        if (data is Map && data['message'] != null) {
+          message = data['message'].toString();
+        }
+      } catch (_) {}
+      throw Exception(message);
+    } on SocketException {
+      throw Exception(
+        'Tidak ada koneksi internet. Pastikan data seluler atau WiFi Anda aktif.',
+      );
+    } on HttpException {
+      throw Exception('Gagal menghubungi server. Coba lagi nanti.');
+    } on FormatException {
+      throw Exception('Terjadi kesalahan saat memproses data.');
     }
-    throw Exception(message);
   }
 
   List<BookingItem> _mergeInventoryDuplicates(List<BookingItem> items) {
-    // Biar UI tidak “banjir” duplikat ketika booking inventory kepost berkali-kali.
-    // Penggabungan hanya untuk booking inventory yang benar-benar identik.
     final Map<String, BookingItem> merged = {};
 
     for (final b in items) {
