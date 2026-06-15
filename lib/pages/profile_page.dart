@@ -1,9 +1,11 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 import '../main.dart'; // untuk AuthPage saat logout
-
 import '../models/booking_model.dart';
 import '../services/booking_service.dart';
 import '../services/session_manager.dart';
+import '../services/profile_service.dart';
 
 class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key});
@@ -15,26 +17,55 @@ class ProfilePage extends StatefulWidget {
 class _ProfilePageState extends State<ProfilePage> {
   String _userName = 'Sheila';
   String _userEmail = 'sheilaa@gmail.com';
-  String _profileImagePath = 'assets/images/profile_default.png';
+  String _userPhone = '';
+  String _userAddress = '';
+  String _profilePhotoUrl = '';
 
   final BookingService _bookingService = BookingService();
+  final ProfileService _profileService = ProfileService();
+  final ImagePicker _imagePicker = ImagePicker();
+
   late Future<List<BookingItem>> _bookingsFuture;
+  bool _isLoading = false;
 
   @override
   void initState() {
     super.initState();
     _bookingsFuture = _bookingService.fetchBookings();
     _loadUserFromSession();
+    _fetchProfileFromServer();
   }
 
   Future<void> _loadUserFromSession() async {
     final name = await SessionManager.getUserName();
     final email = await SessionManager.getUserEmail();
+    final phone = await SessionManager.getUserPhone();
+    final address = await SessionManager.getUserAddress();
+    final photo = await SessionManager.getUserPhoto();
     if (!mounted) return;
     setState(() {
       if (name != null && name.isNotEmpty) _userName = name;
       if (email != null && email.isNotEmpty) _userEmail = email;
+      if (phone != null) _userPhone = phone;
+      if (address != null) _userAddress = address;
+      if (photo != null) _profilePhotoUrl = photo;
     });
+  }
+
+  Future<void> _fetchProfileFromServer() async {
+    try {
+      final data = await _profileService.fetchProfile();
+      if (!mounted) return;
+      setState(() {
+        _userName = (data['name'] ?? '').toString();
+        _userEmail = (data['email'] ?? '').toString();
+        _userPhone = (data['phone'] ?? '').toString();
+        _userAddress = (data['address'] ?? '').toString();
+        _profilePhotoUrl = (data['profile_photo'] ?? '').toString();
+      });
+    } catch (_) {
+      // Abaikan error jaringan saat inisialisasi awal, pakai cache lokal
+    }
   }
 
   void _refreshBookings() {
@@ -98,6 +129,435 @@ class _ProfilePageState extends State<ProfilePage> {
     );
   }
 
+  // Pilih foto dari galeri HP dan langsung upload ke server
+  Future<void> _handleSelectAndUploadPhoto() async {
+    try {
+      final XFile? image = await _imagePicker.pickImage(
+        source: ImageSource.gallery,
+        maxWidth: 800,
+        maxHeight: 800,
+        imageQuality: 85,
+      );
+
+      if (image == null) return;
+
+      setState(() {
+        _isLoading = true;
+      });
+
+      final File file = File(image.path);
+      final newPhotoPath = await _profileService.uploadPhoto(file);
+
+      setState(() {
+        _profilePhotoUrl = newPhotoPath;
+      });
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Foto profil berhasil diperbarui')),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(e.toString().replaceFirst('Exception: ', ''))),
+        );
+      }
+    } finally {
+      setState(() {
+        _isLoading = false;
+      });
+    }
+  }
+
+  // Menampilkan modal dialog untuk mengubah biodata profil
+  void _showEditProfileDialog() {
+    final nameController = TextEditingController(text: _userName);
+    final emailController = TextEditingController(text: _userEmail);
+    final phoneController = TextEditingController(text: _userPhone);
+    final addressController = TextEditingController(text: _userAddress);
+
+    showDialog(
+      context: context,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            return AlertDialog(
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20),
+              ),
+              title: const Text(
+                'Edit Profil',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+              content: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Nama Lengkap',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 13,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    TextField(
+                      controller: nameController,
+                      decoration: const InputDecoration(
+                        hintText: 'Masukkan nama',
+                        prefixIcon: Icon(Icons.person_outline),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    const Text(
+                      'Email',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 13,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    TextField(
+                      controller: emailController,
+                      keyboardType: TextInputType.emailAddress,
+                      decoration: const InputDecoration(
+                        hintText: 'Masukkan email',
+                        prefixIcon: Icon(Icons.email_outlined),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    const Text(
+                      'Nomor Telepon',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 13,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    TextField(
+                      controller: phoneController,
+                      keyboardType: TextInputType.phone,
+                      decoration: const InputDecoration(
+                        hintText: '08xxxxxxxxxx',
+                        prefixIcon: Icon(Icons.phone_outlined),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    const Text(
+                      'Alamat',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 13,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    TextField(
+                      controller: addressController,
+                      maxLines: 2,
+                      decoration: const InputDecoration(
+                        hintText: 'Masukkan alamat',
+                        prefixIcon: Icon(Icons.location_on_outlined),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: _isLoading ? null : () => Navigator.pop(context),
+                  child: const Text('Batal'),
+                ),
+                ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF2F6E3E),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                  ),
+                  onPressed: _isLoading
+                      ? null
+                      : () async {
+                          setModalState(() => _isLoading = true);
+                          try {
+                            await _profileService.updateProfile(
+                              name: nameController.text.trim(),
+                              email: emailController.text.trim(),
+                              phone: phoneController.text.trim(),
+                              address: addressController.text.trim(),
+                            );
+                            await _loadUserFromSession();
+                            if (mounted) {
+                              Navigator.pop(context);
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text('Profil berhasil diperbarui'),
+                                ),
+                              );
+                            }
+                          } catch (e) {
+                            if (mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text(
+                                    e.toString().replaceFirst(
+                                      'Exception: ',
+                                      '',
+                                    ),
+                                  ),
+                                ),
+                              );
+                            }
+                          } finally {
+                            setModalState(() => _isLoading = false);
+                          }
+                        },
+                  child: _isLoading
+                      ? const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(
+                            color: Colors.white,
+                            strokeWidth: 2,
+                          ),
+                        )
+                      : const Text(
+                          'Simpan',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
+  // Menampilkan modal dialog untuk mengganti password
+  void _showChangePasswordDialog() {
+    final currentPassController = TextEditingController();
+    final newPassController = TextEditingController();
+    final confirmPassController = TextEditingController();
+
+    showDialog(
+      context: context,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            return AlertDialog(
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20),
+              ),
+              title: const Text(
+                'Ganti Password',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+              content: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Password Lama',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 13,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    TextField(
+                      controller: currentPassController,
+                      obscureText: true,
+                      decoration: const InputDecoration(
+                        hintText: 'Password saat ini',
+                        prefixIcon: Icon(Icons.lock_outline),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    const Text(
+                      'Password Baru',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 13,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    TextField(
+                      controller: newPassController,
+                      obscureText: true,
+                      decoration: const InputDecoration(
+                        hintText: 'Password baru',
+                        prefixIcon: Icon(Icons.lock_outline),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    const Text(
+                      'Konfirmasi Password Baru',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 13,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    TextField(
+                      controller: confirmPassController,
+                      obscureText: true,
+                      decoration: const InputDecoration(
+                        hintText: 'Ulangi password baru',
+                        prefixIcon: Icon(Icons.lock_outline),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: _isLoading ? null : () => Navigator.pop(context),
+                  child: const Text('Batal'),
+                ),
+                ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF2F6E3E),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                  ),
+                  onPressed: _isLoading
+                      ? null
+                      : () async {
+                          if (newPassController.text !=
+                              confirmPassController.text) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text(
+                                  'Konfirmasi password tidak cocok',
+                                ),
+                              ),
+                            );
+                            return;
+                          }
+
+                          setModalState(() => _isLoading = true);
+                          try {
+                            await _profileService.updatePassword(
+                              currentPassword: currentPassController.text,
+                              newPassword: newPassController.text,
+                            );
+                            if (mounted) {
+                              Navigator.pop(context);
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text('Password berhasil diubah'),
+                                ),
+                              );
+                            }
+                          } catch (e) {
+                            if (mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text(
+                                    e.toString().replaceFirst(
+                                      'Exception: ',
+                                      '',
+                                    ),
+                                  ),
+                                ),
+                              );
+                            }
+                          } finally {
+                            setModalState(() => _isLoading = false);
+                          }
+                        },
+                  child: _isLoading
+                      ? const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(
+                            color: Colors.white,
+                            strokeWidth: 2,
+                          ),
+                        )
+                      : const Text(
+                          'Ganti',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Widget _buildProfilePhoto() {
+    return GestureDetector(
+      onTap: _isLoading ? null : _handleSelectAndUploadPhoto,
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          if (_profilePhotoUrl.isNotEmpty)
+            CircleAvatar(
+              radius: 32,
+              backgroundColor: const Color(0xFFEAF4ED),
+              backgroundImage: NetworkImage(
+                '${ProfileService.baseUrl}/$_profilePhotoUrl',
+              ),
+            )
+          else
+            const CircleAvatar(
+              radius: 32,
+              backgroundColor: const Color(0xFFEAF4ED),
+              backgroundImage: AssetImage('assets/images/profile_default.png'),
+            ),
+          Positioned(
+            bottom: 0,
+            right: 0,
+            child: Container(
+              padding: const EdgeInsets.all(4),
+              decoration: const BoxDecoration(
+                color: Color(0xFF2F6E3E),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Icons.camera_alt,
+                size: 14,
+                color: Colors.white,
+              ),
+            ),
+          ),
+          if (_isLoading)
+            Positioned.fill(
+              child: Container(
+                decoration: BoxDecoration(
+                  color: Colors.black.withOpacity(0.4),
+                  shape: BoxShape.circle,
+                ),
+                child: const Center(
+                  child: SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(
+                      color: Colors.white,
+                      strokeWidth: 2,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -110,11 +570,90 @@ class _ProfilePageState extends State<ProfilePage> {
             children: [
               _HeaderProfile(),
               const SizedBox(height: 16),
-              _UserCard(
-                name: _userName,
-                email: _userEmail,
-                imagePath: _profileImagePath,
+
+              // Kartu Informasi Akun
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(22),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.06),
+                      blurRadius: 16,
+                      offset: const Offset(0, 8),
+                    ),
+                  ],
+                ),
+                child: Column(
+                  children: [
+                    Row(
+                      children: [
+                        _buildProfilePhoto(),
+                        const SizedBox(width: 14),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                _userName,
+                                style: const TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.w800,
+                                ),
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                _userEmail,
+                                style: const TextStyle(color: Colors.black54),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                    const Divider(height: 24, thickness: 1),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                      children: [
+                        TextButton.icon(
+                          onPressed: _showEditProfileDialog,
+                          icon: const Icon(
+                            Icons.edit,
+                            color: Color(0xFF2F6E3E),
+                            size: 18,
+                          ),
+                          label: const Text(
+                            'Edit Profil',
+                            style: TextStyle(color: Color(0xFF2F6E3E)),
+                          ),
+                        ),
+                        const SizedBox(
+                          height: 20,
+                          child: VerticalDivider(
+                            width: 1,
+                            thickness: 1,
+                            color: Colors.grey,
+                          ),
+                        ),
+                        TextButton.icon(
+                          onPressed: _showChangePasswordDialog,
+                          icon: const Icon(
+                            Icons.lock_outline,
+                            color: Color(0xFF2F6E3E),
+                            size: 18,
+                          ),
+                          label: const Text(
+                            'Ganti Sandi',
+                            style: TextStyle(color: Color(0xFF2F6E3E)),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
               ),
+
               const SizedBox(height: 12),
               const Text(
                 'Pantau status pengajuan kapan pun.',
@@ -317,62 +856,6 @@ class _HeaderProfile extends StatelessWidget {
             child: const Icon(
               Icons.add_shopping_cart_rounded,
               color: Color(0xFF2F6E3E),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _UserCard extends StatelessWidget {
-  final String name;
-  final String email;
-  final String imagePath;
-
-  const _UserCard({
-    required this.name,
-    required this.email,
-    required this.imagePath,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(22),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.06),
-            blurRadius: 16,
-            offset: const Offset(0, 8),
-          ),
-        ],
-      ),
-      child: Row(
-        children: [
-          CircleAvatar(
-            radius: 27,
-            backgroundColor: const Color(0xFFEAF4ED),
-            backgroundImage: AssetImage(imagePath),
-          ),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  name,
-                  style: const TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
-                const SizedBox(height: 2),
-                Text(email, style: const TextStyle(color: Colors.black54)),
-              ],
             ),
           ),
         ],

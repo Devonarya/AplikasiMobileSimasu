@@ -6,6 +6,8 @@ class SessionManager {
   static const _userEmailKey = 'user_email';
   static const _userRoleKey = 'user_role';
   static const _userPhoneKey = 'user_phone';
+  static const _userAddressKey = 'user_address';
+  static const _userPhotoKey = 'user_photo';
 
   static Future<void> saveSession({
     required String token,
@@ -13,6 +15,8 @@ class SessionManager {
     required String email,
     required String role,
     String? phone,
+    String? address,
+    String? photo,
   }) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_tokenKey, token);
@@ -20,6 +24,8 @@ class SessionManager {
     await prefs.setString(_userEmailKey, email);
     await prefs.setString(_userRoleKey, role);
     await prefs.setString(_userPhoneKey, phone ?? '');
+    await prefs.setString(_userAddressKey, address ?? '');
+    await prefs.setString(_userPhotoKey, photo ?? '');
   }
 
   static Future<String?> getToken() async {
@@ -47,6 +53,34 @@ class SessionManager {
     return prefs.getString(_userPhoneKey);
   }
 
+  static Future<String?> getUserAddress() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString(_userAddressKey);
+  }
+
+  static Future<String?> getUserPhoto() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString(_userPhotoKey);
+  }
+
+  static Future<void> updateLocalProfile({
+    required String name,
+    required String email,
+    String? phone,
+    String? address,
+  }) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_userNameKey, name);
+    await prefs.setString(_userEmailKey, email);
+    if (phone != null) await prefs.setString(_userPhoneKey, phone);
+    if (address != null) await prefs.setString(_userAddressKey, address);
+  }
+
+  static Future<void> updateLocalPhoto(String photoPath) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_userPhotoKey, photoPath);
+  }
+
   static Future<void> clear() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(_tokenKey);
@@ -54,5 +88,7 @@ class SessionManager {
     await prefs.remove(_userEmailKey);
     await prefs.remove(_userRoleKey);
     await prefs.remove(_userPhoneKey);
+    await prefs.remove(_userAddressKey);
+    await prefs.remove(_userPhotoKey);
   }
 }

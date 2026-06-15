@@ -1,7 +1,5 @@
 import 'dart:convert';
-
 import 'package:http/http.dart' as http;
-
 import 'session_manager.dart';
 
 class AuthService {
@@ -76,8 +74,10 @@ class AuthService {
       token: token,
       name: (user['name'] ?? 'User').toString(),
       email: (user['email'] ?? email).toString(),
-      role: (user['role'] ?? 'user').toString(),
+      role: role,
       phone: (user['phone'] ?? '').toString(),
+      address: (user['address'] ?? '').toString(),
+      photo: (user['profile_photo'] ?? '').toString(),
     );
   }
 }
