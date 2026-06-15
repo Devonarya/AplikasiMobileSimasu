@@ -10,14 +10,12 @@ class ProfileService {
   // Mendapatkan profile terbaru dari API
   Future<Map<String, dynamic>> fetchProfile() async {
     final token = await SessionManager.getToken();
-    if (token == null) throw Exception('Sesi kadaluarsa. Silakan login kembali.');
+    if (token == null)
+      throw Exception('Sesi kadaluarsa. Silakan login kembali.');
 
     final res = await http.get(
       Uri.parse('$baseUrl/api/profile'),
-      headers: {
-        'Authorization': 'Bearer $token',
-        'Accept': 'application/json',
-      },
+      headers: {'Authorization': 'Bearer $token', 'Accept': 'application/json'},
     );
 
     if (res.statusCode != 200) {
@@ -25,7 +23,7 @@ class ProfileService {
     }
 
     final data = jsonDecode(res.body);
-    
+
     // Perbarui data local setelah sukses fetch
     await SessionManager.updateLocalProfile(
       name: (data['name'] ?? '').toString(),
@@ -48,7 +46,8 @@ class ProfileService {
     required String address,
   }) async {
     final token = await SessionManager.getToken();
-    if (token == null) throw Exception('Sesi kadaluarsa. Silakan login kembali.');
+    if (token == null)
+      throw Exception('Sesi kadaluarsa. Silakan login kembali.');
 
     final res = await http.put(
       Uri.parse('$baseUrl/api/profile'),
@@ -83,7 +82,8 @@ class ProfileService {
     required String newPassword,
   }) async {
     final token = await SessionManager.getToken();
-    if (token == null) throw Exception('Sesi kadaluarsa. Silakan login kembali.');
+    if (token == null)
+      throw Exception('Sesi kadaluarsa. Silakan login kembali.');
 
     final res = await http.put(
       Uri.parse('$baseUrl/api/profile/password'),
@@ -98,14 +98,17 @@ class ProfileService {
     );
 
     if (res.statusCode != 200) {
-      throw Exception(_parseErrorMessage(res.body, 'Gagal memperbarui password'));
+      throw Exception(
+        _parseErrorMessage(res.body, 'Gagal memperbarui password'),
+      );
     }
   }
 
   // Upload/Update Foto Profil (Multipart)
   Future<String> uploadPhoto(File file) async {
     final token = await SessionManager.getToken();
-    if (token == null) throw Exception('Sesi kadaluarsa. Silakan login kembali.');
+    if (token == null)
+      throw Exception('Sesi kadaluarsa. Silakan login kembali.');
 
     final request = http.MultipartRequest(
       'POST',
@@ -113,7 +116,7 @@ class ProfileService {
     );
 
     request.headers['Authorization'] = 'Bearer $token';
-    
+
     final mimeType = _detectMimeType(file.path);
     request.files.add(
       await http.MultipartFile.fromPath(
@@ -127,7 +130,9 @@ class ProfileService {
     final res = await http.Response.fromStream(streamedResponse);
 
     if (res.statusCode != 200) {
-      throw Exception(_parseErrorMessage(res.body, 'Gagal mengunggah foto profil'));
+      throw Exception(
+        _parseErrorMessage(res.body, 'Gagal mengunggah foto profil'),
+      );
     }
 
     final data = jsonDecode(res.body);

@@ -24,7 +24,7 @@ class _ProfilePageState extends State<ProfilePage> {
   final BookingService _bookingService = BookingService();
   final ProfileService _profileService = ProfileService();
   final ImagePicker _imagePicker = ImagePicker();
-  
+
   late Future<List<BookingItem>> _bookingsFuture;
   bool _isLoading = false;
 
@@ -183,7 +183,9 @@ class _ProfilePageState extends State<ProfilePage> {
         return StatefulBuilder(
           builder: (context, setModalState) {
             return AlertDialog(
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20),
+              ),
               title: const Text(
                 'Edit Profil',
                 style: TextStyle(fontWeight: FontWeight.bold),
@@ -193,7 +195,13 @@ class _ProfilePageState extends State<ProfilePage> {
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text('Nama Lengkap', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                    const Text(
+                      'Nama Lengkap',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 13,
+                      ),
+                    ),
                     const SizedBox(height: 6),
                     TextField(
                       controller: nameController,
@@ -203,7 +211,13 @@ class _ProfilePageState extends State<ProfilePage> {
                       ),
                     ),
                     const SizedBox(height: 16),
-                    const Text('Email', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                    const Text(
+                      'Email',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 13,
+                      ),
+                    ),
                     const SizedBox(height: 6),
                     TextField(
                       controller: emailController,
@@ -214,7 +228,13 @@ class _ProfilePageState extends State<ProfilePage> {
                       ),
                     ),
                     const SizedBox(height: 16),
-                    const Text('Nomor Telepon', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                    const Text(
+                      'Nomor Telepon',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 13,
+                      ),
+                    ),
                     const SizedBox(height: 6),
                     TextField(
                       controller: phoneController,
@@ -225,7 +245,13 @@ class _ProfilePageState extends State<ProfilePage> {
                       ),
                     ),
                     const SizedBox(height: 16),
-                    const Text('Alamat', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                    const Text(
+                      'Alamat',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 13,
+                      ),
+                    ),
                     const SizedBox(height: 6),
                     TextField(
                       controller: addressController,
@@ -246,7 +272,9 @@ class _ProfilePageState extends State<ProfilePage> {
                 ElevatedButton(
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF2F6E3E),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
                   ),
                   onPressed: _isLoading
                       ? null
@@ -263,13 +291,22 @@ class _ProfilePageState extends State<ProfilePage> {
                             if (mounted) {
                               Navigator.pop(context);
                               ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(content: Text('Profil berhasil diperbarui')),
+                                const SnackBar(
+                                  content: Text('Profil berhasil diperbarui'),
+                                ),
                               );
                             }
                           } catch (e) {
                             if (mounted) {
                               ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(content: Text(e.toString().replaceFirst('Exception: ', ''))),
+                                SnackBar(
+                                  content: Text(
+                                    e.toString().replaceFirst(
+                                      'Exception: ',
+                                      '',
+                                    ),
+                                  ),
+                                ),
                               );
                             }
                           } finally {
@@ -277,8 +314,21 @@ class _ProfilePageState extends State<ProfilePage> {
                           }
                         },
                   child: _isLoading
-                      ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                      : const Text('Simpan', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                      ? const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(
+                            color: Colors.white,
+                            strokeWidth: 2,
+                          ),
+                        )
+                      : const Text(
+                          'Simpan',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
                 ),
               ],
             );
@@ -300,7 +350,9 @@ class _ProfilePageState extends State<ProfilePage> {
         return StatefulBuilder(
           builder: (context, setModalState) {
             return AlertDialog(
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20),
+              ),
               title: const Text(
                 'Ganti Password',
                 style: TextStyle(fontWeight: FontWeight.bold),
@@ -310,7 +362,13 @@ class _ProfilePageState extends State<ProfilePage> {
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text('Password Lama', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                    const Text(
+                      'Password Lama',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 13,
+                      ),
+                    ),
                     const SizedBox(height: 6),
                     TextField(
                       controller: currentPassController,
@@ -321,7 +379,13 @@ class _ProfilePageState extends State<ProfilePage> {
                       ),
                     ),
                     const SizedBox(height: 16),
-                    const Text('Password Baru', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                    const Text(
+                      'Password Baru',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 13,
+                      ),
+                    ),
                     const SizedBox(height: 6),
                     TextField(
                       controller: newPassController,
@@ -332,7 +396,13 @@ class _ProfilePageState extends State<ProfilePage> {
                       ),
                     ),
                     const SizedBox(height: 16),
-                    const Text('Konfirmasi Password Baru', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                    const Text(
+                      'Konfirmasi Password Baru',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 13,
+                      ),
+                    ),
                     const SizedBox(height: 6),
                     TextField(
                       controller: confirmPassController,
@@ -353,14 +423,21 @@ class _ProfilePageState extends State<ProfilePage> {
                 ElevatedButton(
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF2F6E3E),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
                   ),
                   onPressed: _isLoading
                       ? null
                       : () async {
-                          if (newPassController.text != confirmPassController.text) {
+                          if (newPassController.text !=
+                              confirmPassController.text) {
                             ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text('Konfirmasi password tidak cocok')),
+                              const SnackBar(
+                                content: Text(
+                                  'Konfirmasi password tidak cocok',
+                                ),
+                              ),
                             );
                             return;
                           }
@@ -374,13 +451,22 @@ class _ProfilePageState extends State<ProfilePage> {
                             if (mounted) {
                               Navigator.pop(context);
                               ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(content: Text('Password berhasil diubah')),
+                                const SnackBar(
+                                  content: Text('Password berhasil diubah'),
+                                ),
                               );
                             }
                           } catch (e) {
                             if (mounted) {
                               ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(content: Text(e.toString().replaceFirst('Exception: ', ''))),
+                                SnackBar(
+                                  content: Text(
+                                    e.toString().replaceFirst(
+                                      'Exception: ',
+                                      '',
+                                    ),
+                                  ),
+                                ),
                               );
                             }
                           } finally {
@@ -388,8 +474,21 @@ class _ProfilePageState extends State<ProfilePage> {
                           }
                         },
                   child: _isLoading
-                      ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                      : const Text('Ganti', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                      ? const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(
+                            color: Colors.white,
+                            strokeWidth: 2,
+                          ),
+                        )
+                      : const Text(
+                          'Ganti',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
                 ),
               ],
             );
@@ -409,7 +508,9 @@ class _ProfilePageState extends State<ProfilePage> {
             CircleAvatar(
               radius: 32,
               backgroundColor: const Color(0xFFEAF4ED),
-              backgroundImage: NetworkImage('${ProfileService.baseUrl}/$_profilePhotoUrl'),
+              backgroundImage: NetworkImage(
+                '${ProfileService.baseUrl}/$_profilePhotoUrl',
+              ),
             )
           else
             const CircleAvatar(
@@ -469,7 +570,7 @@ class _ProfilePageState extends State<ProfilePage> {
             children: [
               _HeaderProfile(),
               const SizedBox(height: 16),
-              
+
               // Kartu Informasi Akun
               Container(
                 padding: const EdgeInsets.all(16),
@@ -502,7 +603,10 @@ class _ProfilePageState extends State<ProfilePage> {
                                 ),
                               ),
                               const SizedBox(height: 2),
-                              Text(_userEmail, style: const TextStyle(color: Colors.black54)),
+                              Text(
+                                _userEmail,
+                                style: const TextStyle(color: Colors.black54),
+                              ),
                             ],
                           ),
                         ),
@@ -514,20 +618,38 @@ class _ProfilePageState extends State<ProfilePage> {
                       children: [
                         TextButton.icon(
                           onPressed: _showEditProfileDialog,
-                          icon: const Icon(Icons.edit, color: Color(0xFF2F6E3E), size: 18),
-                          label: const Text('Edit Profil', style: TextStyle(color: Color(0xFF2F6E3E))),
+                          icon: const Icon(
+                            Icons.edit,
+                            color: Color(0xFF2F6E3E),
+                            size: 18,
+                          ),
+                          label: const Text(
+                            'Edit Profil',
+                            style: TextStyle(color: Color(0xFF2F6E3E)),
+                          ),
                         ),
                         const SizedBox(
                           height: 20,
-                          child: VerticalDivider(width: 1, thickness: 1, color: Colors.grey),
+                          child: VerticalDivider(
+                            width: 1,
+                            thickness: 1,
+                            color: Colors.grey,
+                          ),
                         ),
                         TextButton.icon(
                           onPressed: _showChangePasswordDialog,
-                          icon: const Icon(Icons.lock_outline, color: Color(0xFF2F6E3E), size: 18),
-                          label: const Text('Ganti Sandi', style: TextStyle(color: Color(0xFF2F6E3E))),
+                          icon: const Icon(
+                            Icons.lock_outline,
+                            color: Color(0xFF2F6E3E),
+                            size: 18,
+                          ),
+                          label: const Text(
+                            'Ganti Sandi',
+                            style: TextStyle(color: Color(0xFF2F6E3E)),
+                          ),
                         ),
                       ],
-                    )
+                    ),
                   ],
                 ),
               ),
