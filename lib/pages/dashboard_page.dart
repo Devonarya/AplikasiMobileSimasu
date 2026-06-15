@@ -1,7 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_local_notifications/flutter_local_notifications.dart';
-import 'package:timezone/timezone.dart' as tz;
-import 'package:timezone/data/latest.dart' as tzdata;
 
 import 'package:simasu/pages/announcement_detail_page.dart';
 import 'package:simasu/pages/kalender_page.dart';
@@ -29,503 +26,34 @@ class MasjidApp extends StatelessWidget {
         scaffoldBackgroundColor: const Color(0xFFF6F8F6),
         brightness: Brightness.light,
       ),
-      home: const HomePage(),
+      home: const RootPage(),
     );
   }
 }
 
-//HOMEPAGE
-class HomePage extends StatefulWidget {
-  const HomePage({super.key});
+// ===================== ROOT SHELL =====================
+class RootPage extends StatefulWidget {
+  const RootPage({super.key});
+
   @override
-  State<HomePage> createState() => _HomePageState();
+  State<RootPage> createState() => _RootPageState();
 }
 
-class _HomePageState extends State<HomePage> {
+class _RootPageState extends State<RootPage> {
   int _selectedIndex = 0;
-  final FlutterLocalNotificationsPlugin notificationsPlugin =
-      FlutterLocalNotificationsPlugin();
 
-  late Future<List<AgendaItem>> _agendaFuture;
-  final AgendaService _agendaService = AgendaService();
-
-  late Future<List<AnnouncementItem>> _announcementFuture;
-  final AnnouncementService _announcementService = AnnouncementService();
-
-  @override
-  void initState() {
-    super.initState();
-    _initNotifications();
-
-    _agendaFuture = _agendaService.fetchAgendas();
-    _announcementFuture = _announcementService.fetchAnnouncements();
-  }
-
-  Future<void> _refreshData() async {
-    setState(() {
-      _agendaFuture = _agendaService.fetchAgendas();
-      _announcementFuture = _announcementService.fetchAnnouncements();
-    });
-  }
-
-  Future<void> _initNotifications() async {
-    // Initialize timezone
-    tzdata.initializeTimeZones();
-    // Set timezone ke Asia/Jakarta (WIB)
-    tz.setLocalLocation(tz.getLocation('Asia/Jakarta'));
-
-    const androidSettings = AndroidInitializationSettings(
-      '@mipmap/ic_launcher',
-    );
-    const initSettings = InitializationSettings(android: androidSettings);
-
-    await notificationsPlugin.initialize(
-      initSettings,
-      onDidReceiveNotificationResponse: (NotificationResponse response) {
-        debugPrint('Notification clicked: ${response.payload}');
-      },
-    );
-
-    // Request notification permission untuk Android 13+
-    final androidImplementation = notificationsPlugin
-        .resolvePlatformSpecificImplementation<
-          AndroidFlutterLocalNotificationsPlugin
-        >();
-
-    final granted = await androidImplementation
-        ?.requestNotificationsPermission();
-    debugPrint('Notification permission granted: $granted');
-  }
-
-  Future<void> _scheduleNotification(AgendaItem item) async {
-    try {
-      final scheduledTime = item.datetime.subtract(const Duration(minutes: 10));
-      final now = DateTime.now();
-
-      debugPrint('Current time: $now');
-      debugPrint('Event time: ${item.datetime}');
-      debugPrint('Notification scheduled for: $scheduledTime');
-
-      if (scheduledTime.isBefore(now)) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(
-                'Waktu acara terlalu dekat (kurang dari 10 menit). Notifikasi akan muncul sekarang sebagai contoh.',
-              ),
-              duration: Duration(seconds: 3),
-              backgroundColor: Colors.orange,
-            ),
-          );
-        }
-        // Untuk testing tampilkan notifikasi sekarang
-        await _showImmediateNotification(item);
-        return;
-      }
-
-      final tzScheduledTime = tz.TZDateTime.from(scheduledTime, tz.local);
-
-      debugPrint('TZ Scheduled time: $tzScheduledTime');
-      debugPrint('TZ Current time: ${tz.TZDateTime.now(tz.local)}');
-
-      const androidDetails = AndroidNotificationDetails(
-        'masjid_channel',
-        'Masjid Syamsul Ulum',
-        channelDescription: 'Notifikasi kegiatan masjid',
-        importance: Importance.max,
-        priority: Priority.high,
-        showWhen: true,
-        icon: '@mipmap/ic_launcher',
-        enableVibration: true,
-        playSound: true,
-      );
-      const details = NotificationDetails(android: androidDetails);
-
-      final notificationId = '${item.title}${item.datetime}'.hashCode.abs();
-
-      await notificationsPlugin.zonedSchedule(
-        notificationId,
-        'Pengingat: ${item.title}',
-        'Acara akan dimulai dalam 10 menit di ${item.tag}',
-        tzScheduledTime,
-        details,
-        androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
-        payload: item.title,
-      );
-
-      final pendingNotifications = await notificationsPlugin
-          .pendingNotificationRequests();
-      debugPrint('Total pending notifications: ${pendingNotifications.length}');
-      for (var notif in pendingNotifications) {
-        debugPrint('Pending: ID=${notif.id}, Title=${notif.title}');
-      }
-
-      if (mounted) {
-        final difference = scheduledTime.difference(now);
-        final hours = difference.inHours;
-        final minutes = difference.inMinutes % 60;
-
-        String timeMessage = '';
-        if (hours > 0) {
-          timeMessage = '$hours jam $minutes menit';
-        } else {
-          timeMessage = '$minutes menit';
-        }
-
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              'Pengingat diatur untuk $timeMessage lagi\n(10 menit sebelum acara)',
-            ),
-            duration: const Duration(seconds: 3),
-            backgroundColor: Colors.green,
-            action: SnackBarAction(
-              label: 'Test Sekarang',
-              textColor: Colors.white,
-              onPressed: () => _showImmediateNotification(item),
-            ),
-          ),
-        );
-      }
-    } catch (e, stackTrace) {
-      debugPrint('Error scheduling notification: $e');
-      debugPrint('Stack trace: $stackTrace');
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Gagal mengatur pengingat: $e'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-    }
-  }
-
-  //fungsi test notif
-  Future<void> _showImmediateNotification(AgendaItem item) async {
-    const androidDetails = AndroidNotificationDetails(
-      'masjid_channel',
-      'Masjid Syamsul Ulum',
-      channelDescription: 'Notifikasi kegiatan masjid',
-      importance: Importance.max,
-      priority: Priority.high,
-      showWhen: true,
-      icon: '@mipmap/ic_launcher',
-      enableVibration: true,
-      playSound: true,
-    );
-    const details = NotificationDetails(android: androidDetails);
-
-    final notificationId = DateTime.now().millisecondsSinceEpoch % 100000;
-
-    await notificationsPlugin.show(
-      notificationId,
-      'Pengingat: ${item.title}',
-      'Acara akan dimulai segera di ${item.tag}',
-      details,
-      payload: item.title,
-    );
-
-    debugPrint('Immediate notification sent with ID: $notificationId');
-  }
-
-  Future<void> _cancelNotification(AgendaItem item) async {
-    final notificationId = '${item.title}${item.datetime}'.hashCode.abs();
-    await notificationsPlugin.cancel(notificationId);
-
-    debugPrint('Cancelled notification ID: $notificationId');
-
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Pengingat dibatalkan'),
-          duration: Duration(seconds: 2),
-        ),
-      );
-    }
-  }
+  final List<Widget> _pages = const [
+    BerandaPage(),
+    InventarisPage(),
+    RuanganPage(),
+    KalenderPage(),
+    ProfilePage(),
+  ];
 
   @override
   Widget build(BuildContext context) {
-    const double horizontalPadding = 16;
     return Scaffold(
-      body: SafeArea(
-        child: Padding(
-          padding: EdgeInsets.symmetric(
-            horizontal: horizontalPadding,
-            vertical: 12,
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  const Text(
-                    'Beranda',
-                    style: TextStyle(
-                      color: Colors.black87,
-                      fontSize: 14,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
-
-              Expanded(
-                child: RefreshIndicator(
-                  onRefresh: _refreshData,
-                  child: SingleChildScrollView(
-                    physics: const AlwaysScrollableScrollPhysics(),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const GreetingCard(userName: 'Jamaah'),
-                        const SizedBox(height: 18),
-
-                        const Text(
-                          'Berita & Pengumuman',
-                          style: TextStyle(
-                            fontSize: 16,
-                            color: Colors.black87,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                        const SizedBox(height: 12),
-
-                        SizedBox(
-                          height: 130,
-                          child: FutureBuilder<List<AnnouncementItem>>(
-                            future: _announcementFuture,
-                            builder: (context, snapshot) {
-                              if (snapshot.connectionState ==
-                                  ConnectionState.waiting) {
-                                return const Center(
-                                  child: CircularProgressIndicator(),
-                                );
-                              }
-
-                              if (snapshot.hasError) {
-                                return Center(
-                                  child: Padding(
-                                    padding: const EdgeInsets.all(8.0),
-                                    child: Text(
-                                      "Gagal memuat berita",
-                                      style: TextStyle(
-                                        color: Colors.grey[600],
-                                        fontSize: 12,
-                                      ),
-                                    ),
-                                  ),
-                                );
-                              }
-
-                              final list = snapshot.data ?? [];
-                              if (list.isEmpty) {
-                                return Container(
-                                  width: double.infinity,
-                                  decoration: BoxDecoration(
-                                    color: Colors.white,
-                                    borderRadius: BorderRadius.circular(16),
-                                  ),
-                                  child: const Center(
-                                    child: Text(
-                                      "Belum ada pengumuman",
-                                      style: TextStyle(color: Colors.grey),
-                                    ),
-                                  ),
-                                );
-                              }
-
-                              return ListView.separated(
-                                scrollDirection: Axis.horizontal,
-                                physics: const BouncingScrollPhysics(),
-                                itemCount: list.length,
-                                separatorBuilder: (context, index) =>
-                                    const SizedBox(width: 12),
-                                itemBuilder: (context, index) {
-                                  final item = list[index];
-                                  final double cardWidth = index == 0
-                                      ? 260
-                                      : 220;
-
-                                  return AnnouncementCard(
-                                    title: item.title,
-                                    subtitle: item.subtitle,
-                                    tag: item.tag,
-                                    width: cardWidth,
-                                  );
-                                },
-                              );
-                            },
-                          ),
-                        ),
-                        const SizedBox(height: 22),
-
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            const Text(
-                              'Agenda Mendatang',
-                              style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.w700,
-                                color: Colors.black87,
-                              ),
-                            ),
-                            TextButton(
-                              onPressed: () {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (context) =>
-                                        const UpcomingEventPage(),
-                                  ),
-                                );
-                              },
-                              style: TextButton.styleFrom(
-                                padding: EdgeInsets.zero,
-                                minimumSize: const Size(40, 30),
-                              ),
-                              child: const Text('Lihat semua'),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 8),
-
-                        FutureBuilder<List<AgendaItem>>(
-                          future: _agendaFuture,
-                          builder: (context, snapshot) {
-                            if (snapshot.connectionState ==
-                                ConnectionState.waiting) {
-                              return const Padding(
-                                padding: EdgeInsets.symmetric(vertical: 32.0),
-                                child: Center(
-                                  child: CircularProgressIndicator(),
-                                ),
-                              );
-                            }
-
-                            if (snapshot.hasError) {
-                              return Padding(
-                                padding: const EdgeInsets.symmetric(
-                                  vertical: 20.0,
-                                ),
-                                child: Center(
-                                  child: Column(
-                                    children: [
-                                      const Icon(
-                                        Icons.error_outline,
-                                        color: Colors.red,
-                                      ),
-                                      const SizedBox(height: 8),
-                                      Text(
-                                        "Gagal memuat agenda.\n${snapshot.error.toString().replaceFirst('Exception: ', '')}",
-                                        textAlign: TextAlign.center,
-                                        style: const TextStyle(
-                                          color: Colors.grey,
-                                        ),
-                                      ),
-                                      TextButton(
-                                        onPressed: _refreshData,
-                                        child: const Text("Coba Lagi"),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              );
-                            }
-
-                            final agendaList = snapshot.data ?? [];
-
-                            final filteredAgendaList = agendaList.where((item) {
-                              final difference = item.datetime.difference(
-                                DateTime.now(),
-                              );
-                              return difference.inMinutes >= -60;
-                            }).toList();
-
-                            if (filteredAgendaList.isEmpty) {
-                              return const Padding(
-                                padding: EdgeInsets.symmetric(vertical: 32.0),
-                                child: Center(
-                                  child: Text(
-                                    "Belum ada agenda mendekati atau dalam 1 jam terakhir.",
-                                    style: TextStyle(color: Colors.grey),
-                                  ),
-                                ),
-                              );
-                            }
-
-                            filteredAgendaList.sort(
-                              (a, b) => a.datetime.compareTo(b.datetime),
-                            );
-
-                            return Column(
-                              children: filteredAgendaList.map((item) {
-                                return Padding(
-                                  padding: const EdgeInsets.symmetric(
-                                    vertical: 8.0,
-                                  ),
-                                  child: GestureDetector(
-                                    onTap: () {
-                                      showDialog(
-                                        context: context,
-                                        builder: (ctx) => AlertDialog(
-                                          title: Text(item.title),
-                                          content: Text(
-                                            'Pembicara: ${item.subtitle}\nTanggal: ${item.formattedDate}\nJam: ${item.formattedTime}\nTempat: ${item.tag}',
-                                          ),
-                                          actions: [
-                                            TextButton(
-                                              onPressed: () {
-                                                Navigator.pop(ctx);
-                                                _scheduleNotification(item);
-                                              },
-                                              child: const Text(
-                                                'Ingatkan Saya',
-                                              ),
-                                            ),
-                                            TextButton(
-                                              onPressed: () {
-                                                Navigator.pop(ctx);
-                                                _cancelNotification(item);
-                                              },
-                                              child: const Text(
-                                                'Batalkan Pengingat',
-                                                style: TextStyle(
-                                                  color: Colors.red,
-                                                ),
-                                              ),
-                                            ),
-                                            TextButton(
-                                              onPressed: () =>
-                                                  Navigator.pop(ctx),
-                                              child: const Text('Tutup'),
-                                            ),
-                                          ],
-                                        ),
-                                      );
-                                    },
-                                    child: AgendaCard(item: item),
-                                  ),
-                                );
-                              }).toList(),
-                            );
-                          },
-                        ),
-                        const SizedBox(height: 80),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-
+      body: IndexedStack(index: _selectedIndex, children: _pages),
       bottomNavigationBar: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12),
         child: Container(
@@ -559,30 +87,7 @@ class _HomePageState extends State<HomePage> {
   Widget _buildBottomIcon(IconData icon, String label, int index) {
     final bool active = _selectedIndex == index;
     return GestureDetector(
-      onTap: () {
-        setState(() => _selectedIndex = index);
-        if (index == 1) {
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (context) => const InventarisPage()),
-          );
-        } else if (index == 2) {
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (context) => const RuanganPage()),
-          );
-        } else if (index == 3) {
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (context) => const KalenderPage()),
-          );
-        } else if (index == 4) {
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (context) => const ProfilePage()),
-          );
-        }
-      },
+      onTap: () => setState(() => _selectedIndex = index),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         mainAxisAlignment: MainAxisAlignment.center,
@@ -608,6 +113,269 @@ class _HomePageState extends State<HomePage> {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+// ===================== BERANDA PAGE =====================
+class BerandaPage extends StatefulWidget {
+  const BerandaPage({super.key});
+
+  @override
+  State<BerandaPage> createState() => _BerandaPageState();
+}
+
+class _BerandaPageState extends State<BerandaPage> {
+  late Future<List<AgendaItem>> _agendaFuture;
+  final AgendaService _agendaService = AgendaService();
+
+  late Future<List<AnnouncementItem>> _announcementFuture;
+  final AnnouncementService _announcementService = AnnouncementService();
+
+  @override
+  void initState() {
+    super.initState();
+    _agendaFuture = _agendaService.fetchAgendas();
+    _announcementFuture = _announcementService.fetchAnnouncements();
+  }
+
+  Future<void> _refreshData() async {
+    setState(() {
+      _agendaFuture = _agendaService.fetchAgendas();
+      _announcementFuture = _announcementService.fetchAnnouncements();
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    const double horizontalPadding = 16;
+    return SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(
+          horizontal: horizontalPadding,
+          vertical: 12,
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Beranda',
+              style: TextStyle(
+                color: Colors.black87,
+                fontSize: 14,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+            const SizedBox(height: 12),
+            Expanded(
+              child: RefreshIndicator(
+                onRefresh: _refreshData,
+                child: SingleChildScrollView(
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const GreetingCard(userName: 'Jamaah'),
+                      const SizedBox(height: 18),
+
+                      const Text(
+                        'Berita & Pengumuman',
+                        style: TextStyle(
+                          fontSize: 16,
+                          color: Colors.black87,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+
+                      SizedBox(
+                        height: 130,
+                        child: FutureBuilder<List<AnnouncementItem>>(
+                          future: _announcementFuture,
+                          builder: (context, snapshot) {
+                            if (snapshot.connectionState ==
+                                ConnectionState.waiting) {
+                              return const Center(
+                                child: CircularProgressIndicator(),
+                              );
+                            }
+
+                            if (snapshot.hasError) {
+                              return Center(
+                                child: Padding(
+                                  padding: const EdgeInsets.all(8.0),
+                                  child: Text(
+                                    snapshot.error.toString().replaceFirst(
+                                      'Exception: ',
+                                      '',
+                                    ),
+                                    style: TextStyle(
+                                      color: Colors.grey[600],
+                                      fontSize: 12,
+                                    ),
+                                  ),
+                                ),
+                              );
+                            }
+
+                            final list = snapshot.data ?? [];
+                            if (list.isEmpty) {
+                              return Container(
+                                width: double.infinity,
+                                decoration: BoxDecoration(
+                                  color: Colors.white,
+                                  borderRadius: BorderRadius.circular(16),
+                                ),
+                                child: const Center(
+                                  child: Text(
+                                    'Belum ada pengumuman',
+                                    style: TextStyle(color: Colors.grey),
+                                  ),
+                                ),
+                              );
+                            }
+
+                            return ListView.separated(
+                              scrollDirection: Axis.horizontal,
+                              physics: const BouncingScrollPhysics(),
+                              itemCount: list.length,
+                              separatorBuilder: (_, __) =>
+                                  const SizedBox(width: 12),
+                              itemBuilder: (context, index) {
+                                final item = list[index];
+                                return AnnouncementCard(
+                                  title: item.title,
+                                  subtitle: item.subtitle,
+                                  tag: item.tag,
+                                  width: index == 0 ? 260 : 220,
+                                );
+                              },
+                            );
+                          },
+                        ),
+                      ),
+                      const SizedBox(height: 22),
+
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const Text(
+                            'Agenda Mendatang',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w700,
+                              color: Colors.black87,
+                            ),
+                          ),
+                          TextButton(
+                            onPressed: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) =>
+                                      const UpcomingEventPage(),
+                                ),
+                              );
+                            },
+                            style: TextButton.styleFrom(
+                              padding: EdgeInsets.zero,
+                              minimumSize: const Size(40, 30),
+                            ),
+                            child: const Text('Lihat semua'),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+
+                      FutureBuilder<List<AgendaItem>>(
+                        future: _agendaFuture,
+                        builder: (context, snapshot) {
+                          if (snapshot.connectionState ==
+                              ConnectionState.waiting) {
+                            return const Padding(
+                              padding: EdgeInsets.symmetric(vertical: 32.0),
+                              child: Center(child: CircularProgressIndicator()),
+                            );
+                          }
+
+                          if (snapshot.hasError) {
+                            return Padding(
+                              padding: const EdgeInsets.symmetric(
+                                vertical: 20.0,
+                              ),
+                              child: Center(
+                                child: Column(
+                                  children: [
+                                    const Icon(
+                                      Icons.error_outline,
+                                      color: Colors.red,
+                                    ),
+                                    const SizedBox(height: 8),
+                                    Text(
+                                      'Gagal memuat agenda.\n${snapshot.error.toString().replaceFirst('Exception: ', '')}',
+                                      textAlign: TextAlign.center,
+                                      style: const TextStyle(
+                                        color: Colors.grey,
+                                      ),
+                                    ),
+                                    TextButton(
+                                      onPressed: _refreshData,
+                                      child: const Text('Coba Lagi'),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            );
+                          }
+
+                          final agendaList = snapshot.data ?? [];
+                          final filteredAgendaList =
+                              agendaList
+                                  .where(
+                                    (item) =>
+                                        item.datetime
+                                            .difference(DateTime.now())
+                                            .inMinutes >=
+                                        -60,
+                                  )
+                                  .toList()
+                                ..sort(
+                                  (a, b) => a.datetime.compareTo(b.datetime),
+                                );
+
+                          if (filteredAgendaList.isEmpty) {
+                            return const Padding(
+                              padding: EdgeInsets.symmetric(vertical: 32.0),
+                              child: Center(
+                                child: Text(
+                                  'Belum ada agenda mendekati atau dalam 1 jam terakhir.',
+                                  style: TextStyle(color: Colors.grey),
+                                ),
+                              ),
+                            );
+                          }
+
+                          return Column(
+                            children: filteredAgendaList.map((item) {
+                              return Padding(
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 8.0,
+                                ),
+                                child: AgendaCard(item: item),
+                              );
+                            }).toList(),
+                          );
+                        },
+                      ),
+                      const SizedBox(height: 80),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -748,12 +516,10 @@ class AnnouncementCard extends StatelessWidget {
                   tag,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  softWrap: false,
                   style: const TextStyle(color: Colors.white, fontSize: 12),
                 ),
               ),
               const SizedBox(height: 10),
-
               Text(
                 title,
                 maxLines: 2,
@@ -765,7 +531,6 @@ class AnnouncementCard extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 8),
-
               Flexible(
                 child: Text(
                   subtitle,
@@ -844,24 +609,16 @@ class AgendaCard extends StatelessWidget {
             ),
           ),
           if (item.formattedTime.isNotEmpty)
-            Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 8,
-                  ),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFEFF8F0),
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: Text(
-                    item.formattedTime,
-                    style: const TextStyle(fontSize: 12),
-                  ),
-                ),
-              ],
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              decoration: BoxDecoration(
+                color: const Color(0xFFEFF8F0),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Text(
+                item.formattedTime,
+                style: const TextStyle(fontSize: 12),
+              ),
             ),
         ],
       ),

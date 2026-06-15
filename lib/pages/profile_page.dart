@@ -1,26 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:simasu/pages/dashboard_page.dart';
-import 'package:simasu/pages/kalender_page.dart';
-import '../main.dart'; // 
-import 'inventaris_page.dart';
-import 'ruangan_page.dart';
+import '../main.dart'; // untuk AuthPage saat logout
 
 import '../models/booking_model.dart';
 import '../services/booking_service.dart';
 import '../services/session_manager.dart';
-
-class MasjidApp extends StatelessWidget {
-  const MasjidApp({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      debugShowCheckedModeBanner: false,
-      title: 'Profil Jamaah',
-      home: const ProfilePage(),
-    );
-  }
-}
 
 class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key});
@@ -30,8 +13,6 @@ class ProfilePage extends StatefulWidget {
 }
 
 class _ProfilePageState extends State<ProfilePage> {
-  int _selectedIndex = 4;
-
   String _userName = 'Sheila';
   String _userEmail = 'sheilaa@gmail.com';
   String _profileImagePath = 'assets/images/profile_default.png';
@@ -182,9 +163,10 @@ class _ProfilePageState extends State<ProfilePage> {
                           ),
                           const SizedBox(height: 8),
                           Text(
-                            snapshot.error
-                                .toString()
-                                .replaceFirst('Exception: ', ''),
+                            snapshot.error.toString().replaceFirst(
+                              'Exception: ',
+                              '',
+                            ),
                             style: const TextStyle(color: Colors.red),
                           ),
                           const SizedBox(height: 8),
@@ -232,7 +214,8 @@ class _ProfilePageState extends State<ProfilePage> {
                           title: b.itemName,
                           start: 'Mulai: ${b.startLabel}',
                           end: 'Selesai: ${b.endLabel}',
-                          note: 'Catatan: ${b.notes == null || b.notes!.trim().isEmpty ? '-' : b.notes!}',
+                          note:
+                              'Catatan: ${b.notes == null || b.notes!.trim().isEmpty ? '-' : b.notes!}',
                           statusLabel: _statusLabel(b.status),
                           statusColor: _statusBg(b.status),
                           statusTextColor: _statusFg(b.status),
@@ -256,89 +239,6 @@ class _ProfilePageState extends State<ProfilePage> {
             ],
           ),
         ),
-      ),
-      bottomNavigationBar: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12),
-        child: Container(
-          height: 64,
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(28),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.06),
-                blurRadius: 10,
-                offset: const Offset(0, 6),
-              ),
-            ],
-          ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
-            children: [
-              _buildBottomIcon(Icons.home, 'Beranda', 0),
-              _buildBottomIcon(Icons.inventory_2, 'Inventaris', 1),
-              _buildBottomIcon(Icons.meeting_room, 'Ruangan', 2),
-              _buildBottomIcon(Icons.calendar_month, 'Kalender', 3),
-              _buildBottomIcon(Icons.person, 'Profil', 4),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildBottomIcon(IconData icon, String label, int index) {
-    final bool active = _selectedIndex == index;
-    return GestureDetector(
-      onTap: () {
-        setState(() => _selectedIndex = index);
-        if (index == 1) {
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (context) => const InventarisPage()),
-          );
-        } else if (index == 2) {
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (context) => const RuanganPage()),
-          );
-        } else if (index == 3) {
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (context) => const KalenderPage()),
-          );
-        } else if (index == 0) {
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (context) => const HomePage()),
-          );
-        }
-      },
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: active ? const Color(0xFF1E8A3E) : Colors.transparent,
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Icon(
-              icon,
-              size: 22,
-              color: active ? Colors.white : Colors.black54,
-            ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: 11,
-              color: active ? const Color(0xFF1E8A3E) : Colors.black54,
-            ),
-          ),
-        ],
       ),
     );
   }
@@ -471,10 +371,7 @@ class _UserCard extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 2),
-                Text(
-                  email,
-                  style: const TextStyle(color: Colors.black54),
-                ),
+                Text(email, style: const TextStyle(color: Colors.black54)),
               ],
             ),
           ),

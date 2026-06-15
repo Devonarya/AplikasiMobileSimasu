@@ -1,8 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:simasu/pages/dashboard_page.dart';
-import 'package:simasu/pages/kalender_page.dart';
-import 'package:simasu/pages/profile_page.dart';
-import 'package:simasu/pages/ruangan_page.dart';
 
 import 'package:simasu/models/inventory_model.dart';
 import 'package:simasu/services/inventory_service.dart';
@@ -17,8 +13,6 @@ class InventarisPage extends StatefulWidget {
 }
 
 class _InventarisPageState extends State<InventarisPage> {
-  int _selectedIndex = 1;
-
   late Future<List<InventoryItem>> _inventoryFuture;
   final InventoryService _inventoryService = InventoryService();
   final BookingService _bookingService = BookingService();
@@ -35,9 +29,7 @@ class _InventarisPageState extends State<InventarisPage> {
     });
     try {
       await _inventoryFuture;
-    } catch (_) {
-      // ditangani UI
-    }
+    } catch (_) {}
   }
 
   String _getStockStatus(int stock) {
@@ -57,15 +49,13 @@ class _InventarisPageState extends State<InventarisPage> {
     if (c.contains('audio') || c.contains('speaker')) return Icons.speaker;
     if (c.contains('video') ||
         c.contains('proyektor') ||
-        c.contains('multimedia')) {
+        c.contains('multimedia'))
       return Icons.videocam;
-    }
     if (c.contains('mic') || c.contains('microphone')) return Icons.mic;
     if (c.contains('sholat') ||
         c.contains('karpet') ||
-        c.contains('perlengkapan')) {
+        c.contains('perlengkapan'))
       return Icons.mosque;
-    }
     return Icons.inventory_2;
   }
 
@@ -90,7 +80,6 @@ class _InventarisPageState extends State<InventarisPage> {
     DateTime? returnDate;
     bool isSubmitting = false;
 
-    // Prefill dari session (kalau ada)
     SessionManager.getUserName().then((v) {
       if (v != null &&
           v.trim().isNotEmpty &&
@@ -118,7 +107,6 @@ class _InventarisPageState extends State<InventarisPage> {
                 lastDate: DateTime(2030),
                 initialDate: bookingDate ?? DateTime.now(),
               );
-
               if (pick != null) {
                 setDialogState(() => bookingDate = pick);
                 if (returnDate != null && returnDate!.isBefore(pick)) {
@@ -140,14 +128,12 @@ class _InventarisPageState extends State<InventarisPage> {
                 );
                 return;
               }
-
               final pick = await showDatePicker(
                 context: dialogContext,
                 firstDate: bookingDate!,
                 lastDate: DateTime(2030),
                 initialDate: bookingDate!,
               );
-
               if (pick != null) {
                 setDialogState(() => returnDate = pick);
               }
@@ -239,9 +225,8 @@ class _InventarisPageState extends State<InventarisPage> {
                           onPressed: isSubmitting
                               ? null
                               : () {
-                                  if (quantity > 1) {
+                                  if (quantity > 1)
                                     setDialogState(() => quantity--);
-                                  }
                                 },
                           icon: const Icon(
                             Icons.remove_circle,
@@ -260,9 +245,8 @@ class _InventarisPageState extends State<InventarisPage> {
                           onPressed: isSubmitting
                               ? null
                               : () {
-                                  if (quantity < item.stock) {
+                                  if (quantity < item.stock)
                                     setDialogState(() => quantity++);
-                                  }
                                 },
                           icon: const Icon(
                             Icons.add_circle,
@@ -354,7 +338,6 @@ class _InventarisPageState extends State<InventarisPage> {
                         ),
                       ),
                     ),
-
                     const SizedBox(height: 12),
                     Text(
                       'Catatan: saat ini API mencatat 1 unit per pengajuan. Kalau kamu booking 3 unit, aplikasi akan membuat 3 pengajuan (pending).',
@@ -435,7 +418,6 @@ class _InventarisPageState extends State<InventarisPage> {
                           setDialogState(() => isSubmitting = true);
 
                           int successCount = 0;
-
                           try {
                             await _bookingService.createBooking(
                               type: 'inventory',
@@ -446,7 +428,7 @@ class _InventarisPageState extends State<InventarisPage> {
                               quantity: quantity,
                               notes: notes,
                             );
-                            final successCount = quantity;
+                            successCount = quantity;
 
                             if (!mounted) return;
                             Navigator.pop(dialogContext);
@@ -454,21 +436,20 @@ class _InventarisPageState extends State<InventarisPage> {
                             ScaffoldMessenger.of(this.context).showSnackBar(
                               SnackBar(
                                 content: Text(
-                                  'Pengajuan berhasil dikirim (${successCount} unit) — menunggu persetujuan admin',
+                                  'Pengajuan berhasil dikirim ($successCount unit) — menunggu persetujuan admin',
                                 ),
                                 backgroundColor: const Color(0xFF4CAF50),
                                 behavior: SnackBarBehavior.floating,
                               ),
                             );
                           } catch (e) {
-                            // Kalau sebagian berhasil, tutup dialog dan beri info.
                             if (successCount > 0) {
                               if (!mounted) return;
                               Navigator.pop(dialogContext);
                               ScaffoldMessenger.of(this.context).showSnackBar(
                                 SnackBar(
                                   content: Text(
-                                    "Sebagian berhasil: $successCount dari $quantity. ${e.toString().replaceFirst('Exception: ', '')}",
+                                    'Sebagian berhasil: $successCount dari $quantity. ${e.toString().replaceFirst('Exception: ', '')}',
                                   ),
                                   backgroundColor: Colors.orange[700],
                                   behavior: SnackBarBehavior.floating,
@@ -760,89 +741,6 @@ class _InventarisPageState extends State<InventarisPage> {
             ),
           ),
         ),
-      ),
-      bottomNavigationBar: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12),
-        child: Container(
-          height: 64,
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(28),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.06),
-                blurRadius: 10,
-                offset: const Offset(0, 6),
-              ),
-            ],
-          ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
-            children: [
-              _buildBottomIcon(Icons.home, 'Beranda', 0),
-              _buildBottomIcon(Icons.inventory_2, 'Inventaris', 1),
-              _buildBottomIcon(Icons.meeting_room, 'Ruangan', 2),
-              _buildBottomIcon(Icons.calendar_month, 'Kalender', 3),
-              _buildBottomIcon(Icons.person, 'Profil', 4),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildBottomIcon(IconData icon, String label, int index) {
-    final bool active = _selectedIndex == index;
-    return GestureDetector(
-      onTap: () {
-        setState(() => _selectedIndex = index);
-        if (index == 0) {
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (context) => const HomePage()),
-          );
-        } else if (index == 2) {
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (context) => const RuanganPage()),
-          );
-        } else if (index == 3) {
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (context) => const KalenderPage()),
-          );
-        } else if (index == 4) {
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (context) => const ProfilePage()),
-          );
-        }
-      },
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: active ? const Color(0xFF1E8A3E) : Colors.transparent,
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Icon(
-              icon,
-              size: 22,
-              color: active ? Colors.white : Colors.black54,
-            ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: 11,
-              color: active ? const Color(0xFF1E8A3E) : Colors.black54,
-            ),
-          ),
-        ],
       ),
     );
   }
